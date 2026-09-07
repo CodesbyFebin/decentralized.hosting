@@ -1,0 +1,58 @@
+// Real /llms.txt endpoint (https://llmstxt.org/), served as static text under
+// output: 'export' -- resolved once at build time since it touches no
+// request-time-only API. Content is hand-curated (not derived from
+// registry.ts) the way the format intends: a short, human-picked summary,
+// not a dump of every route.
+const LLMS_TXT = `# Decentralized.Host (dhost) — Machine-Readable LLM Specification
+# Standard: https://llmstxt.org/
+# Canonical Repository: https://github.com/CodesbyFebin/decentralized.hosting
+# License: MIT Open Source
+
+> Decentralized.Host is an open-source self-hosted deployment platform and distributed compute mesh for running containerized web applications across independently operated compute nodes.
+
+## Core Capabilities
+- CLI & Git Push Deployments: Automated Docker packaging and container scheduling via \`dhost ship\` and SSH Git hooks.
+- Multi-Node Compute Mesh: Decoupled Python node agent daemon reporting real-time CPU/RAM telemetry for weighted scheduler placement.
+- Automatic Edge Routing: Traefik dynamic reverse proxy with automated Let's Encrypt SSL/TLS certificates.
+- Zero Platform Lock-in: Runs standard OCI Docker containers on any Linux server, VPS, or bare-metal machine.
+
+## Canonical Reference Pages
+- /: Decentralized.Host homepage and interactive terminal simulator
+- /features/: Verified capability matrix with code file references
+- /architecture/: Subsystems specification (FastAPI control plane, scheduler, node-agent, Traefik)
+- /security/: Threat matrix, authentication model, and RFC 9116 security.txt
+- /docs/: Developer CLI manual, quickstart guide, and self-hosting runbook
+- /guides/: Step-by-step technical guides (Git push, multi-node mesh, rollbacks)
+- /alternatives/: Evidence-backed comparisons with Coolify, Dokploy, CapRover, Dokku, Heroku, Vercel, AWS
+- /faq/: Direct answers to common scope questions (no blockchain storage, devnet-only Solana, not a hosted SaaS)
+- /deploy/: Framework auto-detection recipes (FastAPI, Next.js, Django, Express, Docker)
+- /decentralized-hosting/: Comprehensive category authority guide on decentralized hosting
+- /self-hosted-paas/: Comprehensive category authority guide on self-hosted PaaS architecture
+- /depin/: Distributed physical infrastructure compute mesh and Solana economic settlement
+- /roadmap/: Public engineering milestones (Phase 1 to Phase 4)
+- /about/: Infrastructure sovereignty manifesto and project philosophy
+- /open-source/: MIT license and GitHub contribution guidelines
+- /pillars/: 69-page topic directory (decentralized infrastructure, self-hosting, Web3) -- each page states plainly whether it connects to the real product
+
+## Developer Quick Start
+\`\`\`bash
+# 1. Clone and install the CLI (not on PyPI yet)
+git clone https://github.com/CodesbyFebin/decentralized.hosting.git
+cd decentralized.hosting && pip install -e ./cli
+
+# 2. Point at your control plane
+export DHOST_API_URL=http://localhost:8000
+export DHOST_DEPLOY_KEY=<your deploy API key>
+
+# 3. Ship an app -- no Dockerfile, no Git required
+cd my-app && dhost ship my-app
+\`\`\`
+`;
+
+export const dynamic = 'force-static';
+
+export function GET() {
+  return new Response(LLMS_TXT, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
