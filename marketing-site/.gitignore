@@ -4,6 +4,7 @@ dist/
 out/
 .next/
 next-env.d.ts
+*.tsbuildinfo
 coverage/
 .DS_Store
 *.log
