@@ -23,7 +23,7 @@
     "motion": "^13.1.1",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "vite": "^6.2.3"
+    "vite": "^8.2.2"
   },
   "devDependencies": {
     "@sparticuz/chromium": "^149.0.0",
@@ -37,6 +37,6 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^8.2.2"
   }
 }
