@@ -1,5 +1,7 @@
 # Decentralized.Host -- Marketing Site
 
+Real static Next.js 16 export, deployed on Vercel with `Root Directory: marketing-site`.
+
 The marketing/content site for [Decentralized.Host](https://decentralized.host), built with
 Next.js 16 (App Router) and statically exported at build time -- every route, including all 69
 pillar pages under `data/pillars.ts`, is real prerendered HTML, not a client-rendered shell.
