@@ -1,20 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Decentralized.Host -- Marketing Site
 
-# Run and deploy your AI Studio app
+Real static Next.js 16 export, deployed on Vercel with `Root Directory: marketing-site`.
 
-This contains everything you need to run your app locally.
+The marketing/content site for [Decentralized.Host](https://decentralized.host), built with
+Next.js 16 (App Router) and statically exported at build time -- every route, including all 69
+pillar pages under `data/pillars.ts`, is real prerendered HTML, not a client-rendered shell.
 
-View your app in AI Studio: https://ai.studio/apps/fb5f3716-cf88-4b0f-af6e-a38f64b3b441
+## Stack
 
-## Run Locally
+- **Next.js 16**, App Router, `output: 'export'` (fully static HTML/CSS/JS in `out/`, no Node
+  server required)
+- React 19, Tailwind CSS v4 (`@tailwindcss/postcss`)
+- Content lives in `data/` (`registry.ts` is the single source of truth for every page's
+  title/description/canonical/schema; `pillars.ts` holds the 69-page topic directory)
 
-**Prerequisites:**  Node.js
+## Run locally
 
+```bash
+npm install
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Build
+
+```bash
+npm run build
+```
+
+Produces a fully static `out/` directory. `app/sitemap.ts`, `app/robots.ts`, and the
+`llms.txt`/`llms-full.txt`/`openapi.json` route handlers are all generated from the same
+`data/registry.ts` source of truth at build time -- no separate pre-build script.
+
+## Type check
+
+```bash
+npm run lint
+```
