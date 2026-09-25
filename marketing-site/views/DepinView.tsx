@@ -1,102 +1,85 @@
 'use client';
 
 import React from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
-import { ClaimBadge } from '../components/ClaimBadge';
-import { Cpu, Network, Shield, Zap, Terminal, ArrowRight, Layers, Coins } from 'lucide-react';
+import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
+import { CommandBlock } from '../components/CommandBlock';
+import { CONTENT_REGISTRY } from '../data/registry';
+
+// Verbatim from pkg/policy/policy.go (DefaultYAML) at the validated commit.
+const DEFAULT_POLICY = `# Host-local sovereign policy. The control plane cannot change this file.
+# Every assignment is checked against it before anything executes.
+sovereign: true
+maxWorkloads: 40
+maxCPU: "32"
+maxMem: 128Gi
+acceptTiers: [local, trusted]
+denyImagesWithoutDigest: true
+# When true, only artifacts attested by a trusted publisher key run here.
+# "cluster-root" means the root key this host pinned when it joined.
+requireImageSignature: false
+trustedPublishers: [cluster-root]
+allowRuntimes: [process, docker]
+allowFederated: false
+allowExec: false
+# deny: keep admitted work, refuse new work while the control plane is stale.
+# stop: also stop admitted work while the control plane is stale.
+offlineAdmission: deny
+maxClockSkew: 30s
+freshWindow: 10s
+storageQuota: 10Gi`;
 
 export const DepinView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/depin/'];
-
+  const fm = CONTENT_REGISTRY['/depin/'];
   return (
-    <div className="space-y-12">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
-
-      {/* Header */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <Cpu className="w-3.5 h-3.5" />
-          <span>DEPIN &amp; DISTRIBUTED COMPUTE SPECIFICATION</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          Decentralized Physical Infrastructure (DePIN) &amp; Compute Mesh
-        </h1>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          How Decentralized.Host models physical compute nodes, useful work execution, and verifiable telemetry without speculative token lockups.
+    <div className="space-y-10 max-w-4xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
+      <header className="space-y-4 text-center">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          A host is any machine running <code className="text-[#00FF41]">dh-noded</code> that a cluster operator has invited.
+          It keeps the final say over what runs on it.
         </p>
-      </div>
+      </header>
 
-      {/* AEO Block */}
-      <div className="max-w-3xl mx-auto">
-        <AeoAnswerBlock
-          question="How does Decentralized.Host integrate with DePIN?"
-          answer="Decentralized.Host is an open compute network where independent hardware operators run lightweight daemon agents to join a distributed compute mesh. Workloads are scheduled based on actual compute capacity and uptime. Node operators can already earn real Solana devnet SPL token credits per healthy heartbeat interval (off by default, devnet only); cryptographic proof-of-execution verification is a planned future addition, not yet built."
-          sourceContext="DePIN Protocol Specification (node-agent/agent.py, control-plane/app/scheduler.py, roadmap)"
-        />
-      </div>
+      <AeoAnswerBlock question="How does a machine become a host?" answer={fm.extractableAnswer!} sourceContext="docs/runbooks/install.md §4" />
 
-      {/* DePIN Core Principles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-emerald-400 font-semibold">01. USEFUL WORKLOADS</span>
-            <ClaimBadge status="IMPLEMENTED" size="sm" />
-          </div>
-          <h2 className="text-base font-bold font-display text-white">Real-World Application Execution</h2>
-          <p className="text-xs text-slate-300 leading-relaxed font-sans">
-            Unlike proof-of-work crypto mining that burns electricity on useless hashing, DePIN compute nodes in Decentralized.Host run production web apps, REST APIs, AI inferences, and databases.
-          </p>
-        </div>
+      <section className="p-5 rounded-lg border border-[#ffbd2e]/30 bg-[#ffbd2e]/5 text-sm text-white/75 font-sans leading-relaxed">
+        This is not a DePIN network. There is no token, reward, staking or public marketplace, and none is planned.
+        (The earlier Python prototype paid Solana devnet credits for uptime; the Go implementation has nothing like it.)
+      </section>
 
-        <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-emerald-400 font-semibold">02. DECOUPLED AGENTS</span>
-            <ClaimBadge status="IMPLEMENTED" size="sm" />
-          </div>
-          <h2 className="text-base font-bold font-display text-white">Lightweight Node Daemons</h2>
-          <p className="text-xs text-slate-300 leading-relaxed font-sans">
-            Hardware operators only need Python 3.11+ and Docker. The node agent exposes a clean REST API, polls for container assignments, and streams back health telemetry.
-          </p>
-        </div>
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">Joining</h2>
+        <p className="text-sm text-white/65 font-sans">The operator creates a single-use invite; the token pins the cluster root and CA, so the host speaks HTTPS from its first request.</p>
+        <CommandBlock lines={['# operator machine', 'dh node invite --out host-1.token', '# the new host', 'dh-noded --data /var/lib/dh-noded --join-file host-1.token --name host-1 --region eu-west --zone a --host rack1-u12 --mesh 0.0.0.0:51820 --mesh-advertise host-1.example.net:51820', '# operator machine', 'dh node approve host-1']} />
+      </section>
 
-        <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-emerald-400 font-semibold">03. NODE-OPERATOR CREDITS</span>
-            <ClaimBadge status="IMPLEMENTED" size="sm" />
-          </div>
-          <h2 className="text-base font-bold font-display text-white">Solana Devnet Credits (Live, Off by Default)</h2>
-          <p className="text-xs text-slate-300 leading-relaxed font-sans">
-            Real SPL token credits mint to a node operator's linked wallet every few healthy heartbeats -- devnet only, no monetary value, real on-chain transactions. Cryptographic proof-of-execution verification and a mainnet migration remain future, unbuilt work (see the roadmap).
-          </p>
-        </div>
-      </div>
-
-      {/* Node Operator Experience */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-6">
-        <h2 className="text-xl font-bold font-display text-white">
-          Joining the Compute Mesh as a Node Provider
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
-          Running a compute node requires zero proprietary hardware -- any Linux server with Docker can join your own private mesh, given the real `NODE_JOIN_SECRET` for that mesh.
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">Your policy, on your machine</h2>
+        <p className="text-sm text-white/65 font-sans">
+          On first start the host writes <code className="text-[#00FF41]">policy.yaml</code> to its data directory. This is the default,
+          verbatim from the source. Edit it and restart the agent to change it; the control plane can read it but never change it.
         </p>
+        <pre className="p-4 rounded-lg border border-white/10 bg-[#050505] text-xs font-mono text-white/80 overflow-x-auto">{DEFAULT_POLICY}</pre>
+      </section>
 
-        <div className="p-4 rounded-xl bg-black border border-slate-800 font-mono text-xs text-emerald-300 space-y-2">
-          <div className="text-slate-500"># Build and run the node agent (see the multi-node guide for the full walkthrough)</div>
-          <div>docker build -t dhost/node-agent -f node-agent/Dockerfile .</div>
-          <div>docker run -d --name dhost-node-agent \</div>
-          <div className="pl-4">-v /var/run/docker.sock:/var/run/docker.sock \</div>
-          <div className="pl-4">-e CONTROL_PLANE_URL=https://api.your-domain.com \</div>
-          <div className="pl-4">-e NODE_JOIN_SECRET=&lt;your real secret&gt; \</div>
-          <div className="pl-4">-e NODE_NAME=worker-2 dhost/node-agent</div>
-          <div className="pt-2 text-slate-500"># Heartbeats every 10s by default (HEARTBEAT_INTERVAL)</div>
-        </div>
-      </div>
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">What you keep control of</h2>
+        <ul className="text-sm text-white/70 font-sans space-y-1.5">
+          <li>› Which tiers, runtimes and resource ceilings you accept, and whether artifacts must be attested.</li>
+          <li>› Whether federated work from other clusters may run here (off by default).</li>
+          <li>› Whether anyone may exec into workloads (off by default).</li>
+          <li>› What happens when the control plane is unreachable: keep admitted work (default) or stop it.</li>
+          <li>› Your own hash-chained journal of every decision, readable with <code className="text-[#00FF41]">dh-noded status</code>.</li>
+        </ul>
+        <p className="text-sm text-white/55 font-sans">
+          Revocation cuts a host from the mesh and routing and blocks new admissions, but work it already admitted may
+          continue under its own policy. Revoked is not the same as lost.
+        </p>
+      </section>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React from 'react';
 import { PageFrontmatter } from '../types';
+import { REPO_URL } from '../lib/project';
 
 interface Props {
   frontmatter: PageFrontmatter;
@@ -11,22 +12,17 @@ export const JsonLd: React.FC<Props> = ({ frontmatter, faqEntries }) => {
 
   // SoftwareApplication schema for product & root
   if (frontmatter.schemaTypes.includes('SoftwareApplication')) {
+    // No license or offers field: the Go repository has no LICENSE yet.
     schemas.push({
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       'name': 'Decentralized.Host',
       'applicationCategory': 'DeveloperApplication',
-      'operatingSystem': 'Linux',
-      'softwareRequirements': 'Docker 24.0+, Python 3.11+',
-      'programmingLanguage': 'Python',
-      'license': 'https://opensource.org/licenses/MIT',
-      'codeRepository': 'https://github.com/CodesbyFebin/decentralized.hosting',
+      'operatingSystem': 'macOS; Linux (validation pending)',
+      'softwareRequirements': 'Go 1.26+ to build',
+      'programmingLanguage': 'Go',
+      'codeRepository': REPO_URL,
       'description': frontmatter.description,
-      'offers': {
-        '@type': 'Offer',
-        'price': '0',
-        'priceCurrency': 'USD'
-      }
     });
   }
 
@@ -39,7 +35,7 @@ export const JsonLd: React.FC<Props> = ({ frontmatter, faqEntries }) => {
       'url': 'https://decentralized.host',
       'logo': 'https://decentralized.host/assets/logo.svg',
       'sameAs': [
-        'https://github.com/CodesbyFebin/decentralized.hosting'
+        REPO_URL
       ]
     });
   }

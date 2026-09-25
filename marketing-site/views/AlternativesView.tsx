@@ -1,114 +1,75 @@
 'use client';
 
 import React from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { FeatureComparisonMatrix } from '../components/FeatureComparisonMatrix';
-import { ComparisonTable } from '../components/ComparisonTable';
-import { COMPARISONS_DATA } from '../data/comparisons';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
-import { Layers, Shield, Calendar, ExternalLink, ArrowRight } from 'lucide-react';
+import { CONTENT_REGISTRY } from '../data/registry';
+import { COMPARISONS_DATA } from '../data/comparisons';
+import { ExternalLink } from 'lucide-react';
+
+const OURS: [string, string][] = [
+  ['Model', 'Raft control plane proposes signed work; sovereign hosts admit it under local policy'],
+  ['Runtime', 'process (signed executables) or docker (digest-pinned images)'],
+  ['Multi-server', 'Yes by design; validated on one machine only so far'],
+  ['Build / git deploy', 'None — bring an executable or an image digest'],
+  ['CLI', 'dh (68 commands)'],
+  ['Dashboard', 'Operator console served by the cluster'],
+  ['Automatic TLS', 'ACME or cluster CA; tested against Pebble only'],
+  ['Rollback', 'Re-apply the previous manifest (new generation)'],
+  ['Observability', 'Signed observations, hash-chained ledgers, logs over the mesh; no metrics history'],
+  ['License', 'None declared yet'],
+];
 
 export const AlternativesView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/alternatives/'];
-
+  const fm = CONTENT_REGISTRY['/alternatives/'];
   return (
-    <div className="space-y-12">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
-
-      {/* Header */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-white/5 border border-white/10 text-[#00FF41] text-xs font-mono">
-          <Layers className="w-3.5 h-3.5 text-[#00FF41]" />
-          <span className="uppercase tracking-wider">EVIDENCE-BACKED PAAS COMPARISONS</span>
-        </div>
-        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">
-          Decentralized.Host vs Alternatives
-        </h1>
-        <p className="text-white/60 text-sm leading-relaxed font-sans">
-          Objective architectural comparisons between Decentralized.Host and self-hosted tools (Coolify, Dokploy, CapRover, Dokku) as well as managed cloud providers (Heroku, Vercel, AWS, UpCloud).
+    <div className="space-y-10 max-w-6xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
+      <header className="space-y-4 text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          If you want to host applications reliably today, the mature tools below are the better choice.
+          Decentralized.Host is for a narrower requirement: hosts that can refuse the coordinator, and state
+          transitions that are signed and independently verifiable.
         </p>
-      </div>
+      </header>
 
-      {/* AEO Block */}
-      <div className="max-w-3xl mx-auto">
-        <AeoAnswerBlock
-          question="How does Decentralized.Host compare to Coolify and other PaaS alternatives?"
-          answer="Unlike single-server PaaS tools like Dokku or single-orchestrator tools like Coolify and Dokploy, Decentralized.Host is built around a decoupled Python node agent daemon, native Git SSH receiver hooks, intelligent multi-node scheduling across independent VPS instances, and optional verifiable compute ledgers."
-          sourceContext="Platform comparison matrix (last verified August 2026 across official documentation)"
-        />
-      </div>
-
-      {/* Dedicated 3-Way Feature Comparison Matrix */}
-      <section className="space-y-6">
-        <FeatureComparisonMatrix />
-      </section>
-
-      {/* Main Interactive Comparison Table */}
-      <section className="space-y-6">
-        <div className="text-center space-y-1">
-          <span className="text-[10px] font-mono text-[#00FF41] uppercase tracking-widest">
-            DEEP DIVE BENCHMARKS
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold font-display text-white uppercase">
-            Head-to-Head Specification Explorer
-          </h2>
-        </div>
-        <ComparisonTable />
-      </section>
-
-      {/* Individual Competitor Summary Cards */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold font-display text-white uppercase">
-          Detailed Competitor Profiles &amp; Evidence
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {COMPARISONS_DATA.map((comp) => (
-            <div key={comp.id} className="p-6 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-lg font-bold font-display text-white">
-                  vs {comp.name}
-                </h3>
-                <div className="flex items-center gap-2 text-xs font-mono text-white/50">
-                  <Calendar className="w-3.5 h-3.5 text-[#00FF41]" />
-                  <span>Verified: {comp.lastVerifiedAt}</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-xs font-mono">
-                <div className="text-white/40">License: <span className="text-white/80">{comp.license}</span></div>
-                <div className="text-white/40">Deployment Model: <span className="text-white/80">{comp.deploymentModel}</span></div>
-                <div className="text-white/40">Multi-Server: <span className="text-[#00FF41]">{comp.multiServerSupport}</span></div>
-              </div>
-
-              <p className="text-xs sm:text-sm text-white/70 font-sans leading-relaxed">
-                {comp.summaryComparison}
-              </p>
-
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono">
-                <span className="text-white/40 truncate max-w-[200px]">
-                  Ref: {comp.evidenceSource}
-                </span>
-                <a
-                  href={comp.officialUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[#00FF41] hover:underline flex items-center gap-1 uppercase tracking-wider"
-                >
-                  <span>Official Docs</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
+      <section className="p-5 rounded-lg bg-[#0a0a0a] border border-[#00FF41]/30 space-y-3">
+        <h2 className="text-lg font-bold text-white font-display">Decentralized.Host, in the same terms</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
+          {OURS.map(([k, v]) => (
+            <div key={k} className="grid grid-cols-[130px_1fr] gap-3">
+              <span className="text-white/40 font-mono text-xs uppercase tracking-wider pt-0.5">{k}</span>
+              <span className="text-white/75 font-sans">{v}</span>
             </div>
           ))}
         </div>
+      </section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {COMPARISONS_DATA.map((c) => (
+          <article key={c.id} id={c.slug} className="p-5 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-white font-display">{c.name}</h2>
+              <a href={c.officialUrl} target="_blank" rel="noreferrer" className="text-white/40 hover:text-[#00FF41]" aria-label={`${c.name} website`}>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+            <p className="text-sm text-white/70 font-sans leading-relaxed">{c.summaryComparison}</p>
+            <dl className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-xs font-sans">
+              <dt className="text-white/40">License</dt><dd className="text-white/65">{c.license}</dd>
+              <dt className="text-white/40">Model</dt><dd className="text-white/65">{c.deploymentModel}</dd>
+              <dt className="text-white/40">Multi-server</dt><dd className="text-white/65">{c.multiServerSupport}</dd>
+              <dt className="text-white/40">Git deploy</dt><dd className="text-white/65">{c.gitDeployment}</dd>
+              <dt className="text-white/40">TLS</dt><dd className="text-white/65">{c.automaticTls}</dd>
+            </dl>
+            <div className="pt-2 border-t border-white/10 text-[10px] font-mono text-white/35">
+              recorded {c.lastVerifiedAt}, not re-checked since · {c.evidenceSource}
+            </div>
+          </article>
+        ))}
       </div>
     </div>
   );
 };
-

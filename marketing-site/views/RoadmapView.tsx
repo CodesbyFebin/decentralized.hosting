@@ -1,177 +1,166 @@
 'use client';
 
 import React from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
-import { ClaimBadge } from '../components/ClaimBadge';
-import { GitBranch, CheckCircle2, Clock, Calendar, Sparkles, ArrowRight } from 'lucide-react';
+import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
+import { CONTENT_REGISTRY } from '../data/registry';
+import {
+  ATTEMPTS, BASELINE_STEPS, BASELINE_SCOPE, BASELINE_EXCLUSIONS, DEFECTS,
+  PV1_STAGES, P0_ITEMS, P1_ITEMS, MEASUREMENTS, NOT_MEASURED, Outcome,
+} from '../data/evidence';
+import { BASELINE, repoMain } from '../lib/project';
+
+const OUTCOME_CLS: Record<Outcome, string> = {
+  PASS: 'text-[#00FF41] border-[#00FF41]/40 bg-[#00FF41]/10',
+  FAIL: 'text-[#ff5f56] border-[#ff5f56]/40 bg-[#ff5f56]/10',
+  INFRA_FAILURE: 'text-white/60 border-white/20 bg-white/5',
+  PENDING: 'text-[#00e5ff] border-[#00e5ff]/40 bg-[#00e5ff]/10',
+};
+
+const PROGRESSION = ['M1–M8 implementation', 'Production validation (PV-1, P0)', 'Release candidate', 'Externally reproduced evidence', 'Production release'];
 
 export const RoadmapView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/roadmap/'];
-
-  const roadmapPhases = [
-    {
-      phase: 'Phase 1: Core Foundation & Single-Node PaaS',
-      timeline: 'Q1 – Q2 2025',
-      status: 'IMPLEMENTED' as const,
-      description: 'FastAPI control plane, SQLite/PostgreSQL state storage, Git SSH receiver hooks, dynamic Traefik reverse proxy, dhost CLI tool, and Docker container build pipelines.',
-      deliverables: [
-        'FastAPI control plane & Bearer auth (control-plane/app)',
-        'dhost CLI with init, ship, logs, status, keys, rollback',
-        'Git SSH receiver shell (opengit-shell.sh)',
-        'Traefik automated ACME SSL certificate provisioning',
-        'Heuristic framework auto-detection (FastAPI, Next.js, Django)'
-      ]
-    },
-    {
-      phase: 'Phase 2: Multi-Node Mesh, Real Git Push & Node-Operator Credits',
-      timeline: 'Q3 – Q4 2025',
-      status: 'IMPLEMENTED' as const,
-      description: 'Decoupled Python node agent daemon, heartbeats, real-time CPU/RAM telemetry, resource-aware placement scheduler, multi-host container dispatching, a real SSH git server, real production TLS, automated failover for offline nodes, and an optional Solana devnet credit system for node operators.',
-      deliverables: [
-        'Standalone node-agent daemon (node-agent/agent.py)',
-        'Node registration, health checks, and capacity reporting',
-        'Weighted placement scheduler (control-plane/app/scheduler.py)',
-        'Automated failover: a node offline for NODE_OFFLINE_SECONDS has its running deployments rescheduled to a healthy node automatically (control-plane/app/failover.py)',
-        'Real SSH git server with auto-create-repo on push (git-server/)',
-        'Production Let\'s Encrypt TLS via Traefik HTTP-01 (docker-compose.prod.yml)',
-        'Solana devnet SPL token credits for node operators (blockchain/)'
-      ]
-    },
-    {
-      phase: 'Phase 3: Hardware Enclaves & Workload Attestation',
-      timeline: 'Q1 – Q2 2026',
-      status: 'PLANNED' as const,
-      description: 'Confidential computing integration (AMD SEV-SNP, Intel TDX) to protect application memory from untrusted host operators, cryptographic attestation receipts, and signed container provenance.',
-      deliverables: [
-        'Confidential VM runtime execution for untrusted nodes',
-        'Signed cryptographic attestation proofs per build',
-        'Zero-knowledge log streaming and secret envelope decryption',
-        'Distributed volume replication across mesh nodes'
-      ]
-    },
-    {
-      phase: 'Phase 4: Mainnet Settlement & Compute Marketplace',
-      timeline: 'Q3 – Q4 2026',
-      status: 'PLANNED' as const,
-      description: 'A real-value mainnet migration path for the credit system (currently Solana devnet-only by design), and a public marketplace for community node operators to contribute capacity across meshes they don\'t own.',
-      deliverables: [
-        'Optional Solana mainnet credit migration (opt-in, not default)',
-        'Per-repo access control for the git server (currently any registered key can push to any repo)',
-        'Public decentralized node discovery registry'
-      ]
-    }
-  ];
-
+  const fm = CONTENT_REGISTRY['/roadmap/'];
   return (
-    <div className="space-y-12">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
-
-      {/* Header */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <GitBranch className="w-3.5 h-3.5" />
-          <span>TRANSPARENT ENGINEERING TIMELINE</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          Decentralized.Host Engineering Roadmap
-        </h1>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          Our public architectural milestones and development roadmap, showing delivered capabilities and future cryptographic hardening plans.
+    <div className="space-y-12 max-w-6xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
+      <header className="space-y-4 text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          No capability moves from limited to verified because its code exists. It moves when reproducible
+          evidence from the environment the claim implies says so.
         </p>
-      </div>
+      </header>
 
-      {/* AEO Block */}
-      <div className="max-w-3xl mx-auto">
-        <AeoAnswerBlock
-          question="What is the roadmap for Decentralized.Host?"
-          answer="Decentralized.Host has completed Phase 1 (Core PaaS, Git SSH hooks, CLI, Traefik TLS) and Phase 2 (multi-node agent daemon, real SSH git server, production TLS, automated node failover, and Solana devnet node-operator credits). Phase 3 will introduce confidential computing enclaves (AMD SEV), and Phase 4 will introduce an optional Solana mainnet migration and a public compute marketplace."
-          sourceContext="Engineering Roadmap Specification (ROADMAP.md)"
-        />
-      </div>
+      <AeoAnswerBlock question="Is Decentralized.Host production-ready?" answer={fm.extractableAnswer!} sourceContext="evidence/INDEX.md, docs/BLUEPRINT.md §12" />
 
-      {/* Exploratory vision note -- deliberately kept OUT of roadmapPhases and
-          the ClaimBadge system below (IMPLEMENTED/EXPERIMENTAL/PLANNED all
-          imply some level of committed engineering work; this is neither).
-          A genuinely different architecture (peer-to-peer content-addressed
-          storage, à la the Hypercore/Dat ecosystem) was raised as an idea for
-          where the project could go long-term. Framed honestly as
-          brainstorming, not a decision -- today's real Decentralized.Host is
-          Docker containers on servers you run or rent, nothing here changes
-          that. */}
-      <div className="max-w-3xl mx-auto p-6 rounded-2xl border border-purple-500/20 bg-purple-500/[0.03] space-y-3">
-        <div className="flex items-center gap-2 text-xs font-mono text-purple-400">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>EXPLORATORY IDEA — NOT A COMMITTED PHASE</span>
-        </div>
-        <h2 className="text-base font-bold font-display text-white">
-          A longer-term "hosting economy" direction, under consideration
-        </h2>
-        <p className="text-xs text-slate-400 font-sans leading-relaxed">
-          None of this exists in the codebase and it isn't scheduled in any phase above.
-          It's a different architecture from today's Decentralized.Host (which runs your
-          Docker containers on servers you own or rent), floated as a possible long-term
-          direction rather than a decision: instead of one operator's VPS/bare-metal, an
-          app's code and data would be content-addressed and seeded across a swarm of
-          peers who get paid for the storage and bandwidth they contribute — closer to
-          the peer-to-peer model pioneered by the{' '}
-          <a href="https://npmjs.com/package/hypercore" target="_blank" rel="noreferrer" className="text-purple-300 underline decoration-purple-500/40 hover:text-purple-200">
-            Hypercore Protocol
-          </a>{' '}
-          ecosystem (Hypercore, Hyperdrive, and the tools built on them) than to
-          today's container-hosting model. Whether this is worth pursuing, and how it
-          would interoperate with the real mesh described above, is unresolved.
-        </p>
-      </div>
-
-      {/* Roadmap Phase Timeline */}
-      <div className="space-y-6">
-        {roadmapPhases.map((p, idx) => (
-          <div
-            key={idx}
-            className={`p-6 sm:p-8 rounded-2xl border transition-colors space-y-4 ${
-              p.status === 'IMPLEMENTED'
-                ? 'bg-[#080b0f] border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.05)]'
-                : 'bg-[#06080b] border-slate-800'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-mono font-bold text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded">
-                  {p.timeline}
-                </span>
-                <h2 className="text-lg sm:text-xl font-bold font-display text-white">
-                  {p.phase}
-                </h2>
-              </div>
-              <ClaimBadge status={p.status} size="sm" />
-            </div>
-
-            <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
-              {p.description}
-            </p>
-
-            <div className="pt-3 border-t border-slate-800 space-y-2">
-              <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold block">
-                Milestone Deliverables:
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">Where it is</h2>
+        <ol className="flex flex-wrap items-center gap-2 text-[11px] font-mono uppercase tracking-wide">
+          {PROGRESSION.map((p, i) => (
+            <li key={p} className="flex items-center gap-2">
+              <span className={`px-3 py-1.5 rounded border ${i === 0 ? 'border-[#00FF41]/40 text-[#00FF41] bg-[#00FF41]/10' : i === 1 ? 'border-[#ffbd2e]/40 text-[#ffbd2e] bg-[#ffbd2e]/10' : 'border-white/10 text-white/40'}`}>
+                {p}{i === 0 ? ' · done' : i === 1 ? ' · now' : ''}
               </span>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300 font-sans">
-                {p.deliverables.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-emerald-400 font-mono">✔</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+              {i < PROGRESSION.length - 1 && <span className="text-white/20">→</span>}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <h2 className="text-xl font-bold text-white font-display">Every validation attempt</h2>
+          <a href={repoMain('evidence/INDEX.md')} target="_blank" rel="noreferrer" className="text-[11px] font-mono text-white/40 hover:text-[#00FF41]">evidence/INDEX.md</a>
+        </div>
+        <p className="text-sm text-white/60 font-sans">Failed and infrastructure-failed attempts stay on the record next to the ones that superseded them.</p>
+        <div className="overflow-x-auto rounded-lg border border-white/10">
+          <table className="w-full text-sm font-sans">
+            <thead className="bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <tr>
+                <th className="text-left p-3">Record</th><th className="text-left p-3">Environment</th><th className="text-left p-3">Source</th>
+                <th className="text-left p-3">Outcome</th><th className="text-left p-3">Signature</th><th className="text-left p-3">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ATTEMPTS.map((a) => (
+                <tr key={a.id} className="border-t border-white/10 align-top">
+                  <td className="p-3 font-mono text-white whitespace-nowrap">{a.id}</td>
+                  <td className="p-3 text-white/60 min-w-[160px]">{a.environment}</td>
+                  <td className="p-3 font-mono text-[11px] text-white/50 whitespace-nowrap">{a.digest}</td>
+                  <td className="p-3"><span className={`px-2 py-0.5 rounded border text-[11px] font-mono whitespace-nowrap ${OUTCOME_CLS[a.outcome]}`}>{a.outcome.replace('_', ' ')}</span></td>
+                  <td className="p-3 text-[11px] font-mono text-white/50 whitespace-nowrap">{a.verified}</td>
+                  <td className="p-3 text-white/65 min-w-[260px]">{a.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-6 rounded-lg bg-[#0a0a0a] border border-[#00FF41]/30 space-y-3">
+          <h2 className="text-lg font-bold text-white font-display">The baseline: REF-MAC-A03</h2>
+          <p className="text-xs text-white/55 font-sans leading-relaxed">{BASELINE_SCOPE}</p>
+          <ul className="text-sm font-mono divide-y divide-white/5">
+            {BASELINE_STEPS.map((s) => (
+              <li key={s.name} className="py-1.5 flex justify-between gap-3">
+                <span className="text-white/75"><span className="text-[#00FF41] mr-2">✓</span>{s.name}</span>
+                <span className="text-white/40 text-xs">{s.seconds}s</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-white/45 font-sans">Excluded from this record: {BASELINE_EXCLUSIONS.join('; ')}.</p>
+          <a href={BASELINE.releaseUrl} target="_blank" rel="noreferrer" className="inline-block text-[11px] font-mono text-[#00FF41] hover:underline">release {BASELINE.tag} · source {BASELINE.sourceDigestShort}</a>
+        </div>
+        <div className="p-6 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-3">
+          <h2 className="text-lg font-bold text-white font-display">Defects found by validation</h2>
+          <p className="text-xs text-white/55 font-sans">Each fixed defect has a regression test that fails without the fix.</p>
+          <ul className="space-y-2.5">
+            {DEFECTS.map((d) => (
+              <li key={d.id} className="text-sm font-sans">
+                <span className={`font-mono mr-2 ${d.status.startsWith('OPEN') ? 'text-[#ffbd2e]' : 'text-[#00FF41]'}`}>{d.id}</span>
+                <span className="text-white/80">{d.title}</span>
+                <div className="text-[11px] font-mono text-white/45 ml-7">{d.status}</div>
+              </li>
+            ))}
+          </ul>
+          <a href={repoMain('evidence/PV1-S1-HISTORY.md')} target="_blank" rel="noreferrer" className="inline-block text-[11px] font-mono text-white/40 hover:text-[#00FF41]">evidence/PV1-S1-HISTORY.md</a>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-white font-display">PV-1: real infrastructure, in order</h2>
+        <p className="text-sm text-white/60 font-sans">Each stage must pass before the next starts. WAN comes last. The development Mac is the reference only; it promotes nothing.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {PV1_STAGES.map((s) => (
+            <div key={s.id} className="p-4 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[#00FF41] text-sm">{s.id}</span>
+                <span className="text-[10px] font-mono text-white/40 uppercase">{s.status}</span>
+              </div>
+              <div className="text-sm font-bold text-white font-display">{s.title}</div>
+              <div className="text-[11px] text-white/45 font-sans">{s.env}</div>
+              <p className="text-xs text-white/65 font-sans leading-relaxed">{s.establishes}</p>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-white font-display">P0: required for a release candidate</h2>
+        <div className="rounded-lg border border-white/10 divide-y divide-white/5">
+          {P0_ITEMS.map((p) => (
+            <div key={p.id} className="p-3 grid grid-cols-1 sm:grid-cols-[70px_220px_1fr] gap-1 sm:gap-4 text-sm">
+              <span className="font-mono text-[#ffbd2e]">{p.id}</span>
+              <span className="text-white font-medium">{p.title}</span>
+              <span className="text-white/60 font-sans">{p.exit}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-6 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-3">
+          <h2 className="text-lg font-bold text-white font-display">P1: planned capability</h2>
+          <ul className="text-sm text-white/65 font-sans space-y-1.5">{P1_ITEMS.map((p) => <li key={p}>› {p}</li>)}</ul>
+        </div>
+        <div className="p-6 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-3">
+          <h2 className="text-lg font-bold text-white font-display">Measured so far</h2>
+          <p className="text-xs text-white/50 font-sans">One development machine, loopback. Indicative, not benchmarks.</p>
+          <ul className="text-sm font-sans divide-y divide-white/5">
+            {MEASUREMENTS.map((m) => (
+              <li key={m.what} className="py-1.5">
+                <div className="flex justify-between gap-3"><span className="text-white/75">{m.what}</span><span className="font-mono text-[#00FF41] text-xs whitespace-nowrap">{m.result}</span></div>
+                <div className="text-[11px] text-white/40">{m.method}</div>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-white/45 font-sans">NOT MEASURED: {NOT_MEASURED.join(', ')}.</p>
+        </div>
+      </section>
     </div>
   );
 };

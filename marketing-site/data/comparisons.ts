@@ -1,5 +1,8 @@
 import { CompetitorComparison } from '../types';
 
+// Competitor facts are as recorded on each lastVerifiedAt date and have not
+// been re-checked since; the summaries compare against the Go implementation.
+
 export const COMPARISONS_DATA: CompetitorComparison[] = [
   {
     id: 'comp-coolify',
@@ -22,7 +25,7 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Centralized master orchestrator controlling worker nodes via SSH keys',
     lastVerifiedAt: '2025-08-25',
     evidenceSource: 'https://coolify.io/docs, Coolify GitHub repo (v4.0)',
-    summaryComparison: 'Coolify is an excellent feature-rich self-hosted UI with deep catalog templates. Decentralized.Host differs by emphasizing a dedicated lightweight decoupled Python node agent daemon, native CLI-first developer workflows (`dhost ship`), decentralized compute topology, and optional verifiable compute ledgers.'
+    summaryComparison: 'Coolify is a mature, feature-rich self-hosted PaaS with builds, templates and a large UI, and it is the better choice for hosting apps today. Its coordinator commands servers over SSH. Decentralized.Host inverts that: hosts admit or refuse signed proposals under their own policy and sign what they observe. It has no build pipeline or templates and is not yet production-validated.'
   },
   {
     id: 'comp-dokploy',
@@ -45,7 +48,7 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Swarm-based master/worker clustering without independent compute receipts',
     lastVerifiedAt: '2025-08-20',
     evidenceSource: 'https://dokploy.com/docs, Dokploy GitHub repo',
-    summaryComparison: 'Dokploy delivers a polished Next.js dashboard and Docker Swarm clustering. Decentralized.Host focuses on multi-node scheduling across disparate VPS networks without requiring full Swarm cluster overlay networks, featuring native Git SSH hooks and CLI auto-detection.'
+    summaryComparison: 'Dokploy offers a polished dashboard and Swarm clustering with Git-based builds. Decentralized.Host has no builds; its multi-host model is a Raft control plane that proposes work and sovereign hosts that admit it, connected by a userspace WireGuard mesh — validated so far on one machine only.'
   },
   {
     id: 'comp-caprover',
@@ -68,7 +71,7 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Swarm coordinator architecture',
     lastVerifiedAt: '2025-08-15',
     evidenceSource: 'https://caprover.com/docs, CapRover GitHub repository',
-    summaryComparison: 'CapRover is a mature Node.js based PaaS running over Nginx and Docker Swarm. Decentralized.Host modernizes this with modern Traefik v3 edge routing, lightweight FastAPI control planes, and decentralized compute node metrics.'
+    summaryComparison: 'CapRover is an established Swarm-based PaaS with one-click apps and a CLI. Decentralized.Host trades that convenience for signed intent, host-side admission, hash-chained ledgers and a published protocol, and is much younger.'
   },
   {
     id: 'comp-dokku',
@@ -91,7 +94,7 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Single-host focused; does not distribute across an independent node mesh',
     lastVerifiedAt: '2025-08-10',
     evidenceSource: 'https://dokku.com/docs, Dokku GitHub repository',
-    summaryComparison: 'Dokku popularized the `git push` workflow on single Linux VPS servers. Decentralized.Host brings that same intuitive Git push workflow to a distributed multi-node architecture where builds are scheduled across multiple independent server instances.'
+    summaryComparison: 'Dokku is a proven single-server, git-push PaaS. Decentralized.Host is multi-host by design, has no git-push builds, and focuses on verifiable state (desired, admitted and observed kept separate) rather than developer workflow.'
   },
   {
     id: 'comp-heroku',
@@ -114,7 +117,7 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Centralized proprietary multi-tenant cloud with high recurring markup',
     lastVerifiedAt: '2025-08-01',
     evidenceSource: 'https://devcenter.heroku.com',
-    summaryComparison: 'Heroku pioneered frictionless cloud deployments but locks developers into expensive, proprietary tiers. Decentralized.Host delivers the identical Git push and instant rollback experience on your own private infrastructure or independent compute nodes at fraction of the cost.'
+    summaryComparison: 'Heroku is a fully managed platform: you trust the provider with everything. Decentralized.Host is software you run on machines you control, where each machine keeps a veto over what runs on it. It offers none of Heroku\x27s managed services.'
   },
   {
     id: 'comp-vercel',
@@ -137,7 +140,7 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Proprietary serverless network with compute duration and vendor boundaries',
     lastVerifiedAt: '2025-08-05',
     evidenceSource: 'https://vercel.com/docs',
-    summaryComparison: 'Vercel is the premier frontend cloud platform for Next.js. Decentralized.Host gives developers self-hosted sovereignty to run stateful long-running background workers, WebSockets, Python APIs, and full Docker workloads that exceed serverless constraints.'
+    summaryComparison: 'Vercel is a managed frontend and serverless platform with a global edge network. Decentralized.Host is a different category: self-hosted infrastructure for long-running processes and containers on your own hosts, with no CDN or build step.'
   },
   {
     id: 'comp-aws',
@@ -160,7 +163,7 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Fully centralized, single-vendor cloud -- the opposite of a self-hosted node mesh',
     lastVerifiedAt: '2026-08-30',
     evidenceSource: 'https://docs.aws.amazon.com/AmazonECS/, https://docs.aws.amazon.com/elasticbeanstalk/',
-    summaryComparison: 'AWS is the deepest, most capable cloud platform that exists, but that depth is also the cost: real infrastructure-as-code, IAM policies, and per-service billing to assemble something as simple as "git push, get a URL." Decentralized.Host does not compete with AWS\'s breadth (no managed databases, no global CDN, no serverless functions) -- it competes with the specific job of running your own containers on your own or rented VPS/bare-metal hardware without needing to learn ECS task definitions or pay per-service markup. Nothing here is a drop-in AWS replacement for teams that need RDS, Lambda, or S3 specifically; it is a much simpler alternative for teams that just need to run Docker containers with Git-push deploys and automatic TLS.'
+    summaryComparison: 'AWS offers every building block as a managed service under one provider\x27s control. Decentralized.Host is for running workloads on hardware you (or cooperating operators) own, where no coordinator — including your own control plane — can force a host to run something its policy refuses.'
   },
   {
     id: 'comp-upcloud',
@@ -183,190 +186,6 @@ export const COMPARISONS_DATA: CompetitorComparison[] = [
     decentralizedOrMesh: 'Centralized, single-vendor commercial cloud (Finland-headquartered, 15 data centers) -- the opposite of a self-hosted node mesh',
     lastVerifiedAt: '2026-09-02',
     evidenceSource: 'https://upcloud.com/products, https://upcloud.com/docs/tooling/cli/',
-    summaryComparison: 'UpCloud is a real European cloud IaaS provider -- Cloud Servers, GPU Servers, Managed Kubernetes, Managed Databases, load balancing and networking, backed by a genuine 99.999% uptime SLA across 15 data centers. It is not a competitor on deployment workflow: there is no git-push, no CLI-driven app ship, no automatic per-app TLS, because UpCloud sells the infrastructure layer, not a PaaS on top of it. The honest comparison is the same shape as AWS above: you could run Decentralized.Host\'s own mesh (control plane, node agent, Traefik) on UpCloud Cloud Servers exactly like any other VPS in DEPLOY.md\'s guide -- the two are complementary, not substitutes.'
+    summaryComparison: 'UpCloud sells servers. Decentralized.Host is software you could run on such servers; it does not provision or manage the machines themselves.'
   }
 ];
-
-export const FEATURE_COMPARISON_MATRIX: import('../types').FeatureComparisonRow[] = [
-  {
-    featureName: 'Deployment Model',
-    category: 'Core Architecture',
-    description: 'Topology used to coordinate and execute application workloads across servers.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Decentralized Peer-to-Peer Node Mesh with decoupled Python worker daemons and dynamic scheduler',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Supported',
-      detail: 'Centralized Master server controlling remote servers via SSH connections and Docker socket'
-    },
-    dokploy: {
-      status: 'Supported',
-      detail: 'Single-server standalone or Docker Swarm master/worker cluster overlay'
-    },
-    lastVerifiedAt: '2026-08-25',
-    evidenceSource: 'Repository source (this repo, main branch), Coolify GitHub repo (v4.0), Dokploy GitHub repo (v0.9)'
-  },
-  {
-    featureName: 'Runtime Support',
-    category: 'Execution Engine',
-    description: 'Supported container engines, buildpacks, Dockerfile specs, and custom runtimes.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Universal OCI Dockerfile, Nixpacks/Cloud Native Buildpacks, Python/Node/Go/Rust auto-detect',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Supported',
-      detail: 'Dockerfile, Nixpacks, Heroku Buildpacks, and Docker Compose definitions'
-    },
-    dokploy: {
-      status: 'Supported',
-      detail: 'Dockerfile, Buildpacks, and Native Docker Compose multi-service stacks'
-    },
-    lastVerifiedAt: '2026-08-25',
-    evidenceSource: 'Buildpack & Runtime Source Repositories'
-  },
-  {
-    featureName: 'Multi-Server Capability',
-    category: 'Clustering & Mesh',
-    description: 'Capability to schedule workloads across heterogeneous VPS and bare-metal nodes.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Native distributed node mesh with autonomous lightweight agents (`dhost-agent`) and load-based placement',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Supported',
-      detail: 'Multi-server support through SSH tunneling from master server to remote workers'
-    },
-    dokploy: {
-      status: 'Limited',
-      detail: 'Multi-server requires configuring and maintaining Docker Swarm cluster nodes'
-    },
-    lastVerifiedAt: '2026-08-20',
-    evidenceSource: 'Multi-Node Cluster Deployment Documentation'
-  },
-  {
-    featureName: 'Git / CLI Integration',
-    category: 'Developer Workflow',
-    description: 'Automated Git push deployment workflows and native terminal CLI toolchains.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Native `dhost` CLI (`dhost ship`, `dhost nodes`, `dhost logs`) plus Git SSH post-receive hooks',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Limited',
-      detail: 'GitHub/GitLab App webhooks and web UI triggers (CLI is community-maintained/API wrappers)'
-    },
-    dokploy: {
-      status: 'Supported',
-      detail: 'Git webhooks integration and official setup CLI utility'
-    },
-    lastVerifiedAt: '2026-08-25',
-    evidenceSource: 'CLI Tooling Specifications & Git Integration Documentation'
-  },
-  {
-    featureName: 'TLS / SSL Management',
-    category: 'Edge & Ingress',
-    description: 'Automated SSL certificate provisioning, ACME Let’s Encrypt validation, and zero-downtime routing.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Dynamic Traefik v3 reverse proxy with automated ACME Let’s Encrypt TLS and multi-domain ingress',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Supported',
-      detail: 'Automated Let’s Encrypt via Traefik or Caddy reverse proxy integration'
-    },
-    dokploy: {
-      status: 'Supported',
-      detail: 'Automated Let’s Encrypt SSL issuance via Traefik reverse proxy'
-    },
-    lastVerifiedAt: '2026-08-22',
-    evidenceSource: 'Ingress & TLS Verification Protocols'
-  },
-  {
-    featureName: 'Rollback Functionality',
-    category: 'Operational Reliability',
-    description: 'Instant zero-downtime atomic rollback to previous container image versions.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Atomic OCI container hash rollback with instant Traefik label repointing (`dhost rollback <id>`)',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Supported',
-      detail: 'Versioned deployment history and rollback trigger via web console'
-    },
-    dokploy: {
-      status: 'Supported',
-      detail: 'Re-deploy previous commit/build tag from deployment history'
-    },
-    lastVerifiedAt: '2026-08-20',
-    evidenceSource: 'Rollback Implementation & Container Tag History Records'
-  },
-  {
-    featureName: 'Mesh Resource Placement',
-    category: 'Advanced Scheduling',
-    description: 'Autonomous scheduling based on real-time node telemetry (RAM, CPU load, latency).',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Built-in scheduler algorithm evaluating live RAM headroom, CPU utilization, and geographical latency',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Limited',
-      detail: 'Manual server selection per application; lacks automated dynamic telemetry placement'
-    },
-    dokploy: {
-      status: 'Limited',
-      detail: 'Docker Swarm standard round-robin or manual node constraint placement'
-    },
-    lastVerifiedAt: '2026-08-25',
-    evidenceSource: 'Placement Scheduler Algorithm / Source code: control-plane/app/scheduler.py'
-  },
-  {
-    featureName: 'DePIN / Tokenized Compute',
-    category: 'Decentralized Economy',
-    description: 'Node-operator incentives for contributing compute capacity to the mesh.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: 'Solana devnet SPL token credits minted per healthy heartbeat interval (off by default). Devnet only, no real monetary value -- see blockchain/README.md.',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Not Supported',
-      detail: 'Strictly traditional self-hosted infrastructure without tokenized/decentralized compute models'
-    },
-    dokploy: {
-      status: 'Not Supported',
-      detail: 'Standard self-hosted architecture without cryptographic compute verification'
-    },
-    lastVerifiedAt: '2026-09-01',
-    evidenceSource: 'blockchain/README.md, blockchain/creditor.py'
-  },
-  {
-    featureName: 'License & Sovereignty',
-    category: 'Open Source Governance',
-    description: 'Permissive open source licensing with zero commercial gating or telemetry traps.',
-    decentralizedHost: {
-      status: 'Supported',
-      detail: '100% Permissive MIT Open Source License across CLI, node-agent, and control plane',
-      claimStatus: 'IMPLEMENTED'
-    },
-    coolify: {
-      status: 'Limited',
-      detail: 'Dual-license AGPLv3 / Fair Source; commercial cloud hosting features differentiated'
-    },
-    dokploy: {
-      status: 'Supported',
-      detail: 'Apache 2.0 Open Source License'
-    },
-    lastVerifiedAt: '2026-08-25',
-    evidenceSource: 'LICENSE files in official GitHub repositories'
-  }
-];
-

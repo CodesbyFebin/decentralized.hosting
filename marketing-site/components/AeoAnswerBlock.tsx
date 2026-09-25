@@ -1,5 +1,5 @@
 import React from 'react';
-import { HelpCircle, Check, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface Props {
   question?: string;
@@ -8,9 +8,9 @@ interface Props {
 }
 
 export const AeoAnswerBlock: React.FC<Props> = ({ 
-  question = 'Direct Answer / Canonical Definition',
+  question = 'Short answer',
   answer,
-  sourceContext = 'Extracted from repository architecture & implementation specifications'
+  sourceContext = 'docs/BLUEPRINT.md in the Go repository'
 }) => {
   return (
     <div className="relative my-6 p-4 sm:p-5 rounded-lg bg-[#0a0a0a] border border-[#00FF41]/30 shadow-[0_0_20px_rgba(0,255,65,0.08)] overflow-hidden">
@@ -25,9 +25,6 @@ export const AeoAnswerBlock: React.FC<Props> = ({
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-xs font-mono font-semibold tracking-widest text-[#00FF41] uppercase">
               {question}
-            </span>
-            <span className="text-[10px] font-mono text-white/50 flex items-center gap-1 uppercase tracking-wider">
-              <Check className="w-3 h-3 text-[#00FF41]" /> AEO Verified
             </span>
           </div>
           <p className="text-white font-medium text-sm sm:text-base leading-relaxed font-sans">

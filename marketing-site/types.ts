@@ -1,6 +1,13 @@
-export type ClaimStatus = 'IMPLEMENTED' | 'EXPERIMENTAL' | 'PLANNED';
+// The same four labels the production blueprint uses (docs/BLUEPRINT.md in
+// the Go repository). Nothing on the site is filed higher than its evidence.
+//   VERIFIED         implemented and exercised by an automated test or chaos
+//                    scenario with real processes, sockets and failures
+//   LIMITED          works, with a stated limitation or narrower evidence
+//   NOT_IMPLEMENTED  absent
+//   NOT_RUN          the tooling exists but the run has not happened
+export type ClaimStatus = 'VERIFIED' | 'LIMITED' | 'NOT_IMPLEMENTED' | 'NOT_RUN';
 
-export type ContentType = 
+export type ContentType =
   | 'homepage'
   | 'pillar'
   | 'cluster'
@@ -29,7 +36,6 @@ export interface PageFrontmatter {
   secondaryEntities: string[];
   contentType: ContentType;
   audience: AudienceType;
-  claimStatus: ClaimStatus;
   sources: string[];
   relatedPages: string[];
   canonical: string;
@@ -41,14 +47,13 @@ export interface PageFrontmatter {
 
 export interface FeatureItem {
   id: string;
+  milestone: string; // M1..M8, or '—' for cross-cutting
   title: string;
-  slug: string;
-  category: 'deployment' | 'compute-mesh' | 'routing' | 'security' | 'developer-tools' | 'economics';
+  category: 'runtime' | 'storage' | 'trust' | 'mesh' | 'edge' | 'control-plane' | 'resilience' | 'federation' | 'protocol' | 'operations';
   claimStatus: ClaimStatus;
   summary: string;
-  codeSource: string;
-  description: string;
-  technicalCapabilities: string[];
+  evidence: string; // test file, chaos scenario or command that backs the claim
+  limitation?: string;
   cliCommand?: string;
 }
 
@@ -76,17 +81,11 @@ export interface CompetitorComparison {
   summaryComparison: string;
 }
 
-export interface DeployRecipe {
-  id: string;
-  name: string;
-  slug: string;
-  category: 'web-framework' | 'backend-api' | 'static-site' | 'database' | 'bot-worker';
-  runtime: string;
-  dockerfileSnippet: string;
-  prerequisites: string[];
-  steps: string[];
-  claimStatus: ClaimStatus;
-  autoDetectFiles: string[];
+export interface GuideStep {
+  title: string;
+  description: string;
+  command?: string;
+  output?: string; // only real, recorded output -- never invented
 }
 
 export interface GuideItem {
@@ -94,39 +93,17 @@ export interface GuideItem {
   title: string;
   slug: string;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  timeMinutes: number;
   prerequisites: string[];
-  architectureOverview: string;
-  steps: {
-    title: string;
-    description: string;
-    command?: string;
-    output?: string;
-    codeSnippet?: string;
-  }[];
-  troubleshooting: { issue: string; resolution: string }[];
-  securityConsiderations: string[];
-  claimStatus: ClaimStatus;
+  overview: string;
+  source: string; // the runbook or doc in the Go repository this guide follows
+  steps: GuideStep[];
+  notes: string[];
 }
 
-export interface FeatureComparisonRow {
-  featureName: string;
-  category: string;
-  description: string;
-  decentralizedHost: {
-    status: 'Supported' | 'Limited' | 'Not Supported';
-    detail: string;
-    claimStatus: ClaimStatus;
-  };
-  coolify: {
-    status: 'Supported' | 'Limited' | 'Not Supported';
-    detail: string;
-  };
-  dokploy: {
-    status: 'Supported' | 'Limited' | 'Not Supported';
-    detail: string;
-  };
-  lastVerifiedAt: string;
-  evidenceSource: string;
+export interface DocSection {
+  id: string;
+  title: string;
+  body: string; // paragraphs separated by \n\n
+  commands?: string[];
+  source: string;
 }
-

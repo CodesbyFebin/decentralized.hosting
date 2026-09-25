@@ -1,243 +1,87 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
-import { ClaimBadge } from '../components/ClaimBadge';
-import { HelpCircle, ChevronDown } from 'lucide-react';
+import { CONTENT_REGISTRY } from '../data/registry';
+import { LICENSE_STATUS, EVIDENCE_SCOPE } from '../lib/project';
+import { ChevronDown } from 'lucide-react';
 
-interface FAQEntry {
-  question: string;
-  answerText: string;
-  answer: React.ReactNode;
-}
-
-const FAQ_ENTRIES: FAQEntry[] = [
+const FAQ: { q: string; a: string }[] = [
   {
-    question: 'Is Decentralized.Host a blockchain storage network like IPFS, Arweave, or Filecoin?',
-    answerText: 'No. The core platform is a self-hosted Docker deployment mesh -- a FastAPI control plane, Python node agents, and Traefik edge routing -- with no dependency on any blockchain to function. "Decentralized" refers to distributing container workloads across independently operated compute nodes you control, not to content-addressed or blockchain-based storage. The only blockchain component is optional and narrow: a Solana devnet credit system that rewards node operators for healthy uptime.',
-    answer: (
-      <>
-        No. Despite the name, the core platform is a self-hosted Docker deployment mesh -- a FastAPI control plane,
-        Python node agents, and Traefik edge routing -- with no dependency on any blockchain to function. "Decentralized"
-        refers to distributing container workloads across independently operated compute nodes you control, not to
-        content-addressed or blockchain-based storage. The only blockchain component in the project is optional and
-        narrow: a Solana <em>devnet</em> credit system that rewards node operators for healthy uptime. See{' '}
-        <button onClick={() => { window.location.hash = '/depin/'; window.scrollTo(0, 0); }} className="text-[#00FF41] hover:underline">
-          the DePIN page
-        </button>{' '}
-        for exactly what that does and doesn't cover.
-      </>
-    )
+    q: 'Is Decentralized.Host production-ready?',
+    a: `No. M1–M8 are implemented and pass a signed reference run, but ${EVIDENCE_SCOPE} Public ACME, a 24-hour soak, upgrades, fuzzing and an external security review are also outstanding. The roadmap page lists exactly what must pass before a release candidate.`,
   },
   {
-    question: 'Does the Solana integration involve real money or a real token I can buy or sell?',
-    answerText: "No. It runs on Solana's public devnet cluster, not mainnet -- devnet SOL and tokens have no monetary value, are funded by a free public faucet, and exist purely for testing. Every mint is a real on-chain transaction with a real Explorer link, but nothing here is a security, an investment, or a purchase. A mainnet migration is an explicit future decision on the roadmap, not something this version does quietly.",
-    answer: (
-      <>
-        No. It runs on Solana's public <strong>devnet</strong> cluster, not mainnet -- devnet SOL and tokens have no
-        monetary value, are funded by a free public faucet, and exist purely for testing. Every mint is a real
-        on-chain transaction with a real Explorer link, but nothing here is a security, an investment, or a purchase.
-        A mainnet migration is an explicit future decision on the roadmap, not something this version does quietly.
-      </>
-    )
+    q: 'What does "decentralized" mean here?',
+    a: 'Authority is split. A replicated control plane can only propose work as signed intent; each host decides under its own policy whether to run it, keeps its own ledger, and reports signed observations. Independent clusters can cooperate through root-signed federation agreements. It does not mean a blockchain, a token or a public marketplace.',
   },
   {
-    question: 'Do I need Docker or Git installed on my own laptop to deploy?',
-    answerText: "No for either, if you use dhost ship/dhost update: the CLI snapshots your project (SHA-256 content-addressed, no Git involved) and the node agent builds the Docker image server-side. If you'd rather use git push, you do need Git locally, but still not Docker -- the same server-side build pipeline runs on the other end of the SSH push.",
-    answer: (
-      <>
-        No for either, if you use <code>dhost ship</code>/<code>dhost update</code>: the CLI snapshots your project
-        (SHA-256 content-addressed, no Git involved) and the node agent builds the Docker image server-side. If you'd
-        rather use <code>git push</code>, you do need Git locally, but still not Docker -- the same server-side build
-        pipeline runs on the other end of the SSH push.
-      </>
-    )
+    q: 'Is there a token, credits or rewards for running a host?',
+    a: 'No. There is no token, payment, staking or reward mechanism, and none is planned. (The earlier Python prototype that used this domain had Solana devnet credits; the Go implementation does not.)',
   },
   {
-    question: 'Is this a multi-tenant SaaS I can sign up for?',
-    answerText: "No. You run your own control plane (locally via Docker Compose, or on your own server for production) and deploy your own applications to it. There's no hosted signup, no per-user accounts, and no billing -- authentication is a single shared deploy key and a single shared node-join secret, the same trust model as running your own server. It's built for one operator (or a small trusted team) running their own mesh, not for reselling hosting to strangers.",
-    answer: (
-      <>
-        No. You run your own control plane (locally via Docker Compose, or on your own server for production) and
-        deploy your own applications to it. There's no hosted signup, no per-user accounts, and no billing --
-        authentication is a single shared deploy key and a single shared node-join secret, the same trust model as
-        running your own server. It's built for one operator (or a small trusted team) running their own mesh, not
-        for reselling hosting to strangers.
-      </>
-    )
+    q: 'What happens if the control plane goes down?',
+    a: 'Hosts enter offline-hold: work they already admitted keeps running, new work is refused, and observations queue in a local outbox that is flushed when the control plane returns. The cp-total-outage chaos scenario kills every member for 15 seconds under traffic and checks that no request fails.',
   },
   {
-    question: 'Can I host WordPress, or anything besides a Docker-buildable app?',
-    answerText: 'Anything that can run in a Docker container, yes -- including a WordPress container, if you bring your own Dockerfile or docker-compose setup for it. The automatic stack detection recognizes common frameworks (FastAPI, Flask, Django, Express, Next.js, static HTML) and generates a Dockerfile for those; anything else needs its own Dockerfile at the project root, which the detector will pick up and use directly.',
-    answer: (
-      <>
-        Anything that can run in a Docker container, yes -- including a WordPress container, if you bring your own
-        Dockerfile or docker-compose setup for it. The automatic stack detection recognizes common frameworks
-        (FastAPI, Flask, Django, Express, Next.js, static HTML) and generates a Dockerfile for those; anything else
-        needs its own Dockerfile at the project root, which the detector will pick up and use directly.
-      </>
-    )
+    q: 'Can a compromised control plane make my host run anything?',
+    a: 'Not anything. A member key can only sign within its root delegation, and every host checks each assignment against its pinned root, the capability chain and its own policy.yaml (tiers, runtimes, digest pinning, attestation, caps) before running it. A member can still sign harmful-but-permitted work, such as scaling an app to zero; use `dh freeze` if you suspect compromise.',
   },
   {
-    question: 'How is this different from just running Coolify, Dokploy, or Dokku on my server?',
-    answerText: 'Architecturally: those tools centralize around one coordinator server that reaches out to workers over SSH or Docker Swarm. Decentralized.Host instead runs a decoupled node-agent daemon on every machine, each reporting its own address and telemetry to a lightweight control plane that schedules by load -- closer to a small distributed system than a single-server dashboard. See the full comparison page for a feature-by-feature breakdown against each one, with sources.',
-    answer: (
-      <>
-        Architecturally: those tools centralize around one coordinator server that reaches out to workers over SSH or
-        Docker Swarm. Decentralized.Host instead runs a decoupled node-agent daemon on every machine, each reporting
-        its own address and telemetry to a lightweight control plane that schedules by load -- closer to a small
-        distributed system than a single-server dashboard. See the{' '}
-        <button onClick={() => { window.location.hash = '/alternatives/'; window.scrollTo(0, 0); }} className="text-[#00FF41] hover:underline">
-          full comparison page
-        </button>{' '}
-        for a feature-by-feature breakdown against each one, with sources.
-      </>
-    )
+    q: 'Do I need Docker?',
+    a: 'No. The process runtime runs signed executables from the cluster\'s own content-addressed store. Docker is the second runtime, for digest-pinned container images, and the only one that enforces CPU and memory limits today.',
   },
   {
-    question: 'Does deploying get me real HTTPS out of the box?',
-    answerText: "Locally, no -- local dev uses nip.io wildcard DNS over plain HTTP for zero-config routing. In production (the docker-compose.prod.yml overlay, with PUBLIC_SCHEME=https and a real domain), yes -- Traefik requests real Let's Encrypt certificates via the HTTP-01 challenge for the control plane, the console, and every deployed app automatically, no DNS-provider API key required.",
-    answer: (
-      <>
-        Locally, no -- local dev uses <code>nip.io</code> wildcard DNS over plain HTTP for zero-config routing. In
-        production (the <code>docker-compose.prod.yml</code> overlay, with <code>PUBLIC_SCHEME=https</code> and a
-        real domain), yes -- Traefik requests real Let's Encrypt certificates via the HTTP-01 challenge for the
-        control plane, the console, and every deployed app automatically, no DNS-provider API key required.
-      </>
-    )
+    q: 'Can I git push to deploy, or does it build my code?',
+    a: 'No. There is no git-push deployment, build service or framework detection. You build an executable or image with your own tools, push it with `dh artifact push` (or reference an image by sha256 digest), and apply a dh/v1 manifest.',
   },
   {
-    question: 'What happens if one of my nodes goes down?',
-    answerText: "The scheduler places new deployments only on nodes reporting healthy heartbeats. If a node that already has running deployments misses heartbeats for NODE_OFFLINE_SECONDS (180s by default -- long enough that a Docker runtime restart doesn't trigger it), the control plane automatically reschedules its deployments to another healthy node, pulling the already-built image from the mesh's shared registry with no rebuild needed. Real limitations: there's a gap between the old node going offline and the new container being ready where the app 502s, in-container state (local disk writes, in-memory data) is not migrated, and a single-node mesh has nowhere to reschedule to.",
-    answer: (
-      <>
-        The scheduler places new deployments only on nodes reporting healthy heartbeats. If a node that already has
-        running deployments misses heartbeats for <code>NODE_OFFLINE_SECONDS</code> (180s by default -- long enough
-        that a Docker runtime restart doesn't trigger it), the control plane automatically reschedules its
-        deployments to another healthy node, pulling the already-built image from the mesh's shared registry with no
-        rebuild needed. Real limitations, stated plainly: there's a real gap between the old node going offline and
-        the new container being ready where the app returns 502s -- this is automated recovery, not zero-downtime
-        failover; in-container state (local disk writes, an in-memory cache) is not migrated, only the image is
-        restarted fresh; and a single-node mesh has nowhere to reschedule to.
-      </>
-    )
+    q: 'Does it run on Linux?',
+    a: 'It is meant to, and an offline Linux amd64 kit exists to prove it, but the first authoritative Linux run (PV1-S1-A03) has not happened yet. Every verified result so far is from macOS. An earlier diagnostic run in a starved Linux container found two real defects, which were fixed with regression tests.',
   },
   {
-    question: 'Is there a public node network I can join to earn credits, like a DePIN marketplace?',
-    answerText: "No. Every mesh is private and self-hosted -- you run your own control plane and invite only the nodes you choose to join it with your own shared secret. There's no public registry of nodes, no marketplace matching strangers' hardware to workloads, and no way to earn credits on someone else's mesh.",
-    answer: (
-      <>
-        No. Every mesh is private and self-hosted -- you run your own control plane and invite only the nodes you
-        choose to join it with your own shared secret. There's no public registry of nodes, no marketplace matching
-        strangers' hardware to workloads, and no way to earn credits on someone else's mesh. The credit system only
-        rewards operators of nodes already trusted and joined to your own mesh.
-      </>
-    )
+    q: 'Is it open source?',
+    a: `${LICENSE_STATUS.detail} The earlier Python prototype is MIT-licensed; that license does not cover the Go implementation.`,
   },
   {
-    question: 'Can I roll back a bad deployment?',
-    answerText: "Yes, two ways. If you shipped with the CLI, dhost rollback <snapshot-id> restores a local snapshot from .dhost/ledger/ and redeploys it (snapshots are local to whichever machine ran the ship, not centrally synced). Separately, the console's Git Manager tab and GET /deployments/{name}/releases show read-only release history from any machine.",
-    answer: (
-      <>
-        Yes, two ways. If you shipped with the CLI, <code>dhost rollback &lt;snapshot-id&gt;</code> restores a local
-        snapshot from <code>.dhost/ledger/</code> and redeploys it (snapshots are local to whichever machine ran the
-        ship, not centrally synced). Separately, the console's Git Manager tab and{' '}
-        <code>GET /deployments/&#123;name&#125;/releases</code> show read-only release history from any machine, useful for
-        seeing what happened even without local snapshot files.
-      </>
-    )
+    q: 'How is this different from Kubernetes, Nomad or Coolify?',
+    a: 'Those tools assume the control plane is trusted to command nodes. Here the host is the final authority over its own machine, every state transition is signed and journaled, and desired, admitted and observed state stay separate. In exchange it is far smaller and younger: fewer runtimes, no build pipeline, no ecosystem, and no production validation yet.',
   },
   {
-    question: 'What still isn\'t built?',
-    answerText: "Being direct about scope: no confidential computing / workload attestation, no per-user accounts or per-repo access control (one shared deploy key trusts everyone equally), no multi-branch preview environments in the git server, and the node agent still runs Docker internally to build/run containers (developer machines don't need Docker, but the mesh itself does). Automated failover for a crashed node's deployments is now built -- see the roadmap for what's planned next.",
-    answer: (
-      <>
-        Being direct about scope: no confidential computing / workload attestation, no per-user accounts or per-repo
-        access control (one shared deploy key trusts everyone equally), no multi-branch preview environments in the
-        git server, and the node agent still runs Docker internally to build/run containers (developer machines
-        don't need Docker, but the mesh itself does). Automated failover for a crashed node's deployments is now
-        built -- see the{' '}
-        <button onClick={() => { window.location.hash = '/roadmap/'; window.scrollTo(0, 0); }} className="text-[#00FF41] hover:underline">
-          roadmap
-        </button>{' '}
-        for what's planned next.
-      </>
-    )
-  }
+    q: 'Where does the data on this site come from?',
+    a: 'From the Go repository: docs/BLUEPRINT.md for capability status, evidence/INDEX.md and the signed validation records for results, and a recorded session of the real binaries for the terminal output. Nothing on the site is generated in the browser or estimated.',
+  },
+  {
+    q: 'What is not implemented?',
+    a: 'Erasure-coded volumes, HTTP/3, containerd/gVisor/Firecracker runtimes, `dh volume snapshot`/`restore`, CPU and memory enforcement for the process runtime, signed release binaries and an upgrade path, automated browser tests, and did:dh owner identities.',
+  },
 ];
 
 export const FAQView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/faq/'];
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
+  const fm = CONTENT_REGISTRY['/faq/'];
+  const [open, setOpen] = useState<number | null>(0);
   return (
-    <div className="max-w-4xl mx-auto space-y-10 text-slate-300 font-sans">
-      <JsonLd
-        frontmatter={frontmatter}
-        faqEntries={FAQ_ENTRIES.map((e) => ({ question: e.question, answerText: e.answerText }))}
-      />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
-
-      <div className="space-y-4 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <HelpCircle className="w-3.5 h-3.5" />
-          <span>SCOPE &amp; QUALIFICATION FAQ</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          Frequently Asked Questions
-        </h1>
-        <p className="text-slate-300 text-sm max-w-2xl mx-auto leading-relaxed">
-          Straight answers about what Decentralized.Host actually is -- including what it deliberately doesn't do.
-        </p>
-        <div className="flex items-center justify-center gap-2">
-          <ClaimBadge status="IMPLEMENTED" size="sm" />
-        </div>
-      </div>
-
-      <AeoAnswerBlock
-        question="What is Decentralized.Host, in one sentence?"
-        answer="Decentralized.Host is a self-hosted, open-source Docker deployment mesh -- a FastAPI control plane, node agents, and Traefik edge routing, with an optional Solana-devnet credit system for node operators -- not a blockchain storage network."
-        sourceContext="README.md, blockchain/README.md"
-      />
-
-      <div className="space-y-3">
-        {FAQ_ENTRIES.map((entry, idx) => {
-          const isOpen = openIndex === idx;
-          return (
-            <div key={idx} className="rounded-xl bg-[#080b0f] border border-slate-800 overflow-hidden">
-              <button
-                onClick={() => setOpenIndex(isOpen ? null : idx)}
-                className="w-full flex items-center justify-between gap-4 p-4 sm:p-5 text-left"
-              >
-                <span className="text-sm sm:text-base font-semibold text-white">{entry.question}</span>
-                <ChevronDown className={`w-4 h-4 text-emerald-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {isOpen && (
-                <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-sm leading-relaxed text-slate-300 border-t border-slate-800 pt-4">
-                  {entry.answer}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-emerald-950/40 border border-emerald-500/40 text-center space-y-4">
-        <h3 className="text-lg font-bold font-display text-white">Still have questions?</h3>
-        <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
-          The full developer documentation and CLI reference cover every real command and endpoint in detail.
-        </p>
-        <button
-          onClick={() => onNavigate('/docs/')}
-          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-bold text-xs transition-colors"
-        >
-          Read the Docs
-        </button>
+    <div className="space-y-10 max-w-4xl mx-auto">
+      <JsonLd frontmatter={fm} faqEntries={FAQ.map((f) => ({ question: f.q, answerText: f.a }))} />
+      <LastUpdated updatedAt={fm.updatedAt} />
+      <header className="space-y-4 text-center">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+      </header>
+      <div className="space-y-2">
+        {FAQ.map((f, i) => (
+          <div key={f.q} className="rounded-lg bg-[#0a0a0a] border border-white/10">
+            <button
+              onClick={() => setOpen(open === i ? null : i)}
+              aria-expanded={open === i}
+              className="w-full flex items-center justify-between gap-4 p-4 text-left"
+            >
+              <h2 className="text-sm sm:text-base font-bold text-white font-display">{f.q}</h2>
+              <ChevronDown className={`w-4 h-4 text-[#00FF41] shrink-0 transition-transform ${open === i ? 'rotate-180' : ''}`} />
+            </button>
+            {open === i && <p className="px-4 pb-4 text-sm text-white/70 leading-relaxed font-sans">{f.a}</p>}
+          </div>
+        ))}
       </div>
     </div>
   );

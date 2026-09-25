@@ -25,19 +25,19 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   metadataBase: new URL('https://decentralized.host'),
   title: {
-    default: 'Decentralized.Host — Open-Source Decentralized Hosting & Compute',
+    default: 'Decentralized.Host — Self-Hosted Infrastructure Where Hosts Stay Sovereign',
     template: '%s',
   },
   description:
-    'Deploy applications from Git or CLI across independently operated compute nodes with Decentralized.Host, an open-source self-hosted PaaS and distributed compute mesh.',
+    'Self-hosted infrastructure in Go: a replicated control plane proposes signed work, and every host admits it under its own policy and reports what it observed. Not yet production-validated.',
   keywords: [
+    'self-hosted infrastructure',
+    'host sovereignty',
+    'Raft control plane',
+    'WireGuard mesh',
+    'signed observations',
     'decentralized hosting',
-    'self-hosted PaaS',
-    'distributed compute',
-    'open-source hosting',
-    'Docker deployment',
-    'Git deploy',
-    'DePIN compute',
+    'Go',
   ],
   other: {
     'theme-color': '#050505',

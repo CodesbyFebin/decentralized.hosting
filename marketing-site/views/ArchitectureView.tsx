@@ -1,93 +1,79 @@
 'use client';
 
 import React from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { ArchitectureVisualizer } from '../components/ArchitectureVisualizer';
-import { ARCHITECTURE_COMPONENTS, DEPLOYMENT_LIFECYCLE_STEPS } from '../data/architecture';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
-import { ClaimBadge } from '../components/ClaimBadge';
-import { Network, Server, Cpu, Globe, GitBranch, ArrowRight, ShieldCheck } from 'lucide-react';
+import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
+import { ArchitectureVisualizer } from '../components/ArchitectureVisualizer';
+import { CONTENT_REGISTRY } from '../data/registry';
+import { repoPath } from '../lib/project';
+
+const DECISIONS = [
+  { id: '0001', title: 'One Go module', file: 'docs/decisions/0001-go-single-module.md' },
+  { id: '0002', title: 'Canonical JSON for everything signed or hashed', file: 'docs/decisions/0002-canonical-json.md' },
+  { id: '0003', title: 'Hosts hold, they do not stop', file: 'docs/decisions/0003-hosts-hold-not-stop.md' },
+  { id: '0004', title: 'Raft is the source of truth; Postgres is an optional mirror', file: 'docs/decisions/0004-raft.md' },
+  { id: '0005', title: 'Userspace WireGuard', file: 'docs/decisions/0005-userspace-wireguard.md' },
+  { id: '0006', title: 'BLAKE3 and FastCDC', file: 'docs/decisions/0006-blake3-fastcdc.md' },
+  { id: '0007', title: 'A console with no build step', file: 'docs/decisions/0007-console-no-build.md' },
+  { id: '0008', title: 'TLS bootstrap by fingerprint pinning', file: 'docs/decisions/0008-tls-bootstrap-pinning.md' },
+];
 
 export const ArchitectureView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/architecture/'];
-
+  const fm = CONTENT_REGISTRY['/architecture/'];
   return (
-    <div className="space-y-12">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
-
-      {/* Header */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <span>SYSTEM DESIGN &amp; TOPOLOGY SPECIFICATION</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          System Architecture &amp; Data Flow
-        </h1>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          Decentralized.Host is designed from the ground up as a decoupled, multi-node compute mesh. Learn how the control plane, scheduler, node agents, and edge routers collaborate.
+    <div className="space-y-12 max-w-6xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
+      <header className="space-y-4 text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          Three binaries and one protocol. Authority is split on purpose: the control plane decides what
+          should run, each host decides what will run on it, and neither can rewrite the other&apos;s record.
         </p>
-      </div>
+      </header>
 
-      {/* AEO Block */}
-      <div className="max-w-3xl mx-auto">
-        <AeoAnswerBlock
-          question="How does Decentralized.Host system architecture work?"
-          answer="The Decentralized.Host system architecture is divided into three decoupled layers: a FastAPI control plane handling authentication, state, and scheduling; distributed worker node agents managing local Docker runtimes via Unix sockets; and an edge layer running Traefik for automated Let’s Encrypt TLS and HTTP routing."
-          sourceContext="Architecture specification (control-plane/app/, node-agent/agent.py, docker-compose.prod.yml)"
-        />
-      </div>
+      <AeoAnswerBlock question="How is Decentralized.Host built?" answer={fm.extractableAnswer!} sourceContext="docs/architecture.md" />
 
-      {/* Interactive Visualizer */}
       <ArchitectureVisualizer />
 
-      {/* Deep Dive Subsystem Cards */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold font-display text-white text-center sm:text-left">
-          Core Subsystems Specification
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {ARCHITECTURE_COMPONENTS.map((comp) => (
-            <div key={comp.id} className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono text-emerald-400 font-semibold">{comp.name}</span>
-                <ClaimBadge status={comp.claimStatus} size="sm" />
-              </div>
-
-              <div className="text-xs font-mono text-slate-400">
-                Tech Stack: <span className="text-slate-200">{comp.techStack}</span>
-              </div>
-
-              <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
-                {comp.role}
-              </p>
-
-              <div className="space-y-2 pt-2 border-t border-slate-800">
-                <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold block">
-                  Responsibilities:
-                </span>
-                <ul className="space-y-1.5 text-xs text-slate-300 font-sans">
-                  {comp.responsibilities.map((r, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-emerald-400 font-mono">▪</span>
-                      <span>{r}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="pt-2 text-[11px] font-mono text-slate-500">
-                Source Repository Path: <span className="text-emerald-400">{comp.repoPath}</span>
-              </div>
-            </div>
-          ))}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-6 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-3">
+          <h2 className="text-lg font-bold text-white font-display">Wire and storage formats</h2>
+          <p className="text-sm text-white/65 font-sans leading-relaxed">
+            Everything signed or hashed uses canonical JSON: integers only, sorted keys, and duplicate keys,
+            lone surrogates and invalid UTF-8 rejected. Envelopes are Ed25519 signatures over a
+            domain-separated context plus the canonical payload. Identifiers are <code className="text-[#00FF41]">dh1…</code>{' '}
+            derived from public keys. The protocol is specified in{' '}
+            <a className="text-[#00FF41] underline decoration-[#00FF41]/40" href={repoPath('docs/protocol/dh-v1.md')} target="_blank" rel="noreferrer">docs/protocol/dh-v1.md</a>{' '}
+            and pinned by 136 conformance vectors.
+          </p>
         </div>
-      </div>
+        <div className="p-6 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-3">
+          <h2 className="text-lg font-bold text-white font-display">Where it differs from a typical orchestrator</h2>
+          <ul className="text-sm text-white/65 font-sans leading-relaxed space-y-1.5">
+            <li>› The control plane proposes; hosts admit or refuse under local policy.</li>
+            <li>› Losing the control plane holds work in place instead of stopping it.</li>
+            <li>› Nothing is reported as running until a host signs that it observed it.</li>
+            <li>› Workloads are reached through per-assignment mesh forwarders, not routed per-workload IPs.</li>
+            <li>› Postgres, if configured, only mirrors evidence; Raft is the source of truth.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-white font-display">Architecture decision records</h2>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {DECISIONS.map((d) => (
+            <li key={d.id}>
+              <a href={repoPath(d.file)} target="_blank" rel="noreferrer" className="block p-3 rounded bg-white/[0.02] border border-white/10 hover:border-[#00FF41]/40 text-sm text-white/75 font-sans">
+                <span className="font-mono text-[#00FF41] mr-2">ADR {d.id}</span>
+                {d.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 };

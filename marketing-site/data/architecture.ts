@@ -1,176 +1,137 @@
-export interface ArchitectureComponent {
+// From docs/architecture.md and docs/trust-model.md in the Go repository.
+
+export interface ArchComponent {
   id: string;
   name: string;
-  slug?: string;
-  role: string;
-  techStack: string;
-  repoPath: string;
+  binary: string;
+  runsOn: string;
+  holds: string[];
   responsibilities: string[];
-  interfaces: string[];
-  claimStatus: 'IMPLEMENTED' | 'EXPERIMENTAL' | 'PLANNED';
+  source: string;
 }
 
-export const ARCHITECTURE_COMPONENTS: ArchitectureComponent[] = [
+export const ARCHITECTURE_COMPONENTS: ArchComponent[] = [
   {
-    id: 'comp-control-plane',
-    name: 'Control Plane Coordinator',
-    role: 'Central state orchestration, authentication, REST API, and workload scheduling',
-    techStack: 'Python 3.11, FastAPI, SQLAlchemy, Pydantic, SQLite / PostgreSQL',
-    repoPath: 'control-plane/app/',
+    id: 'operator',
+    name: 'Operator',
+    binary: 'dh',
+    runsOn: 'operator machines',
+    holds: ['cluster root key (keep it offline)', 'root CA', 'config in $DH_HOME'],
     responsibilities: [
-      'Authenticates CLI requests via Bearer API Tokens',
-      'Receives and parses deployment archives (zip/tar.gz)',
-      'Executes framework auto-detection heuristics (detect.py)',
-      'Maintains node agent heartbeat registry and health status',
-      'Calculates node placement weights and schedules builds',
-      'Stores immutable release history and version tags in SQL database'
+      'Creates the trust root (`dh init`), bootstraps members and invites hosts.',
+      'Applies dh/v1 manifests, scales, drains, revokes, freezes.',
+      'Verifies the audit ledger, backups and exports locally.',
+      'Uses short-lived, attenuated capabilities derived from the root for day-to-day work.',
     ],
-    interfaces: [
-      'REST API at `:8000/api/v1/` (deployments, nodes, auth, git-keys, blockchain)',
-      'Internal Node Agent WebSocket / HTTP polling channels',
-      'OpenAPI 3.1 Schema at `/openapi.json`'
-    ],
-    claimStatus: 'IMPLEMENTED'
+    source: 'cmd/dh',
   },
   {
-    id: 'comp-node-agent',
-    name: 'Distributed Node Agent',
-    role: 'Worker daemon executing container runtimes on independent compute nodes',
-    techStack: 'Python, Docker Engine API (`docker-py`), psutil, Linux cgroups',
-    repoPath: 'node-agent/agent.py',
+    id: 'control',
+    name: 'Control plane',
+    binary: 'dh-control',
+    runsOn: '1, 3 or 5 machines',
+    holds: ['Raft log and snapshots (bbolt)', 'member identity and root-issued certificate', 'artifact CAS', 'optional Postgres mirror (never the source of truth)'],
     responsibilities: [
-      'Connects to local `/var/run/docker.sock` to manage containers',
-      'Periodically queries local CPU, RAM, Disk, and Network IO telemetry via psutil',
-      'Sends 15-second heartbeats to the control plane API',
-      'Pulls or builds Docker images locally on the target node',
-      'Applies CPU and memory limits (`mem_limit`, `nano_cpus`) to running containers',
-      'Streams container stdout/stderr logs back to control plane on demand'
+      'Replicates desired state through Raft over mutual TLS; the state machine is deterministic and holds the audit ledger.',
+      'Only the verified leader issues bundles, signs assignments and reconciles; every bundle carries a state index so hosts refuse rollback.',
+      'Scheduler plans placements deterministically; the reconciler turns plans into signed assignments with per-assignment capabilities and rolling updates.',
+      'Verifies host observations (host key, monotonic seq) and projects views where every value carries a truth basis.',
+      'Serves the operator console (no build step, CSP default-src \'self\').',
     ],
-    interfaces: [
-      'Docker Socket API (/var/run/docker.sock)',
-      'HTTP outbound telemetry channel to Control Plane'
-    ],
-    claimStatus: 'IMPLEMENTED'
+    source: 'pkg/control, cmd/dh-control',
   },
   {
-    id: 'comp-scheduler',
-    name: 'Resource-Aware Scheduler',
-    role: 'Optimal node selection based on real-time hardware telemetry and availability',
-    techStack: 'Python scheduling algorithm',
-    repoPath: 'control-plane/app/scheduler.py',
+    id: 'host',
+    name: 'Sovereign host',
+    binary: 'dh-noded',
+    runsOn: 'every host',
+    holds: ['host identity', 'policy.yaml (its own rules)', 'journal.jsonl (hash-chained, fsynced)', 'CAS and volume data', 'WireGuard key'],
     responsibilities: [
-      'Filters candidate nodes against minimum memory and CPU thresholds',
-      'Eliminates nodes with heartbeat lag > 60 seconds',
-      'Calculates composite node score: `Score = (Free_RAM_MB * 0.7) + (Free_CPU_Percent * 0.3)`',
-      'Assigns deployment to the highest-scoring candidate node',
-      'Supports single-node fallback if only local agent is registered'
+      'Every second: fetch the bundle and verify it chains to the pinned root, the roster and rollback protection.',
+      'Admit each assignment through 18 ordered checks; on plane, clock, freeze, freshness or revocation failures, hold admitted work rather than stop it.',
+      'Fetch artifacts from peers first, BLAKE3-verify every chunk, then start admitted generations (process or docker runtime).',
+      'Measure processes, health, mesh, storage and edge, then sign an observation; queue it in an outbox if the control plane is unreachable.',
     ],
-    interfaces: [
-      'Invoked internally by `/api/v1/deployments` during dispatch'
-    ],
-    claimStatus: 'IMPLEMENTED'
+    source: 'pkg/node, pkg/policy, pkg/runtime, cmd/dh-noded',
   },
   {
-    id: 'comp-traefik-edge',
-    name: 'Traefik Edge Routing & TLS',
-    role: 'Ingress proxy, dynamic subdomain routing, and automated ACME SSL',
-    techStack: 'Traefik v3 Proxy, Let’s Encrypt ACME provider, Docker provider',
-    repoPath: 'docker-compose.yml & docker-compose.prod.yml',
+    id: 'mesh',
+    name: 'Mesh',
+    binary: 'inside dh-noded',
+    runsOn: 'every host and member',
+    holds: ['signed wg-binding per host', 'gossip membership view'],
     responsibilities: [
-      'Inspects dynamic Docker container labels without restarting proxy process',
-      'Binds port 80 and 443 on public host interface',
-      'Issues and renews wildcard / subdomain TLS certificates via Let’s Encrypt',
-      'Enforces HTTPS redirection and security headers (HSTS, CSP)',
-      'Routes traffic directly to container internal network ports'
+      'wireguard-go on a gVisor netstack in userspace: no root, no kernel module.',
+      'Hosts configure only peers whose signed key bindings verify; SWIM gossip runs inside the tunnel.',
+      'The peer API serves verified chunks, Merkle bucket roots, ledgers and logs over mesh addresses.',
+      'Each assignment\'s port is exposed by a forwarder that lives as long as the assignment.',
     ],
-    interfaces: [
-      'Public HTTP (80) & HTTPS (443)',
-      'Docker Socket label listener'
-    ],
-    claimStatus: 'IMPLEMENTED'
+    source: 'pkg/mesh, pkg/peer',
   },
   {
-    id: 'comp-git-server',
-    name: 'Git SSH Server & Post-Receive Hook',
-    role: 'SSH authentication and Git push triggered deployment receiver',
-    techStack: 'Alpine Linux, OpenSSH Server, Bash script hooks, Git core',
-    repoPath: 'git-server/entrypoint.sh & git-server/post-receive.template',
+    id: 'storage',
+    name: 'Storage',
+    binary: 'inside dh-noded',
+    runsOn: 'hosts with volumes',
+    holds: ['BLAKE3 content-addressed objects', 'snapshot manifests', 'replica and repair evidence'],
     responsibilities: [
-      'Binds custom SSH port (e.g., 2222) for git operations',
-      'Restricts incoming SSH sessions to `git-receive-pack` via opengit-shell.sh',
-      'Verifies developer SSH public keys against authorized_keys pool',
-      'Extracts pushed git tree and creates clean tar.gz build snapshot',
-      'Issues internal HTTP POST to control plane to trigger build'
+      'Objects are verified on every read; corrupt objects are quarantined.',
+      'Volumes are chunked with FastCDC into snapshots; a snapshot commits once two replicas return signed replica evidence.',
+      'A moved replica restores the last committed snapshot, so an interrupted write rolls back cleanly.',
+      'Replicas compare 256 Merkle bucket roots and repair only the differing buckets, recording evidence.',
     ],
-    interfaces: [
-      'SSH port 2222 (`ssh://git@host:2222/app.git`)',
-      'Local loopback API call to Control Plane'
-    ],
-    claimStatus: 'IMPLEMENTED'
+    source: 'pkg/storage',
   },
   {
-    id: 'comp-cli-tool',
-    name: 'dhost Developer CLI',
-    slug: 'cli',
-    techStack: 'Python, Click / Typer, Requests, Rich Terminal UI',
-    repoPath: 'cli/dhost/main.py',
-    role: 'Local developer terminal interface for shipping apps, viewing logs, and managing nodes',
+    id: 'edge',
+    name: 'Edge',
+    binary: 'dh-noded --roles edge',
+    runsOn: 'edge hosts',
+    holds: ['routing table from the bundle', 'certificates (cluster CA or ACME)'],
     responsibilities: [
-      'Discovers local project framework and generates a Dockerfile server-side (none committed to your repo)',
-      'Gzips working directory (respecting `.dhostignore`)',
-      'Uploads build payload directly to Control Plane API with streaming progress',
-      'Polls and prints colored deployment logs and final live URL',
-      'Provides management subcommands (`dhost nodes`, `dhost rollback`, `dhost logs`)'
+      'L7 reverse proxy over the mesh, fed by the bundle\'s routing table and its own probes.',
+      'Endpoints are routing, draining, ejected or pending; hung replicas are ejected on first-byte timeout.',
+      'Certificates via ACME (HTTP-01, DNS-01, wildcards) or the cluster-local CA; states reported verbatim.',
     ],
-    interfaces: [
-      'Terminal CLI (`dhost ship`, `dhost init`, `dhost status`, `dhost logs`)',
-      'HTTP REST requests to Control Plane'
-    ],
-    claimStatus: 'IMPLEMENTED'
-  }
+    source: 'pkg/edge',
+  },
 ];
 
-export const DEPLOYMENT_LIFECYCLE_STEPS = [
-  {
-    stepNumber: 1,
-    title: 'Code Ingestion',
-    source: 'Developer Machine',
-    action: 'Developer runs `dhost ship` or executes `git push dhost main`. Local files are packaged into a compressed archive excluding .git and node_modules.',
-    component: 'dhost CLI / Git SSH Server'
-  },
-  {
-    stepNumber: 2,
-    title: 'Payload Analysis & Verification',
-    source: 'Control Plane API',
-    action: 'API authenticates API key / SSH signature, runs `detect.py` to identify framework type, and allocates an immutable deployment record in database.',
-    component: 'FastAPI Control Plane'
-  },
-  {
-    stepNumber: 3,
-    title: 'Smart Scheduling',
-    source: 'Scheduler Engine',
-    action: 'Scheduler inspects live telemetry from all registered node agents. Filters out unhealthy nodes and picks the node with optimal free memory & CPU.',
-    component: 'Scheduler'
-  },
-  {
-    stepNumber: 4,
-    title: 'Remote Container Build & Execution',
-    source: 'Target Node Agent',
-    action: 'Selected Node Agent downloads the payload archive, invokes Docker Engine to build the container image, assigns resource limits, and starts container.',
-    component: 'Node Agent (Docker Engine)'
-  },
-  {
-    stepNumber: 5,
-    title: 'Dynamic Ingress & TLS Attachment',
-    source: 'Traefik Proxy',
-    action: 'Traefik discovers the new container via Docker labels, registers HTTP/HTTPS routes, provisions Let’s Encrypt SSL, and opens traffic.',
-    component: 'Traefik Edge Proxy'
-  },
-  {
-    stepNumber: 6,
-    title: 'Health Check & Terminal Feedback',
-    source: 'Control Plane & CLI',
-    action: 'Node agent verifies container HTTP status code. Deployment status switches to ACTIVE and CLI outputs live application URL.',
-    component: 'Developer Terminal'
-  }
+// The path a deployment takes. Each step names where it happens.
+export const LIFECYCLE = [
+  { step: 'Apply', where: 'dh → control plane', what: 'A dh/v1 manifest is validated strictly (unknown fields rejected), normalized, hashed and committed through Raft as desired state.' },
+  { step: 'Plan', where: 'control plane', what: 'The deterministic scheduler filters hosts by tier, resources, architecture, features, anti-affinity and failure domain. `dh explain app` shows the plan.' },
+  { step: 'Sign', where: 'control plane (leader)', what: 'The reconciler issues signed assignments, each with a capability bound to one host, generation, artifact digest and resource ceiling.' },
+  { step: 'Admit', where: 'host', what: 'The host checks the pinned root, roster, signature, audience, generation, clock, capability chain, revocation, freeze, freshness and its own policy — 18 checks, in order.' },
+  { step: 'Run', where: 'host', what: 'Artifact chunks are fetched from peers and BLAKE3-verified; the admitted generation starts under the process or docker runtime.' },
+  { step: 'Observe', where: 'host → control plane', what: 'The host signs what it measured. Nothing is shown as running until a host has observed it; desired, admitted and observed stay separate.' },
+  { step: 'Route', where: 'edge', what: 'Edge hosts probe replicas over the mesh and route only to healthy ones.' },
+  { step: 'Verify', where: 'anyone with the ledger', what: '`dh audit verify` checks the hash chain and signed checkpoints locally; hosts keep their own ledgers too.' },
+];
+
+export const TRUST_ANCHORS = [
+  { key: 'Cluster root', heldBy: 'operator, offline', can: 'sign rosters, delegate to members, create invites, sign root rotations, grant federation, attest artifacts', cannot: 'run anything on a host whose policy refuses it' },
+  { key: 'Member key', heldBy: 'each control-plane member', can: 'sign bundles and assignments within its root delegation', cannot: 'enlarge the roster, change host policy, roll a host back, issue work for a revoked host' },
+  { key: 'Host key', heldBy: 'each host', can: 'sign enrollment, observations, wg-binding, storage evidence, its own ledger', cannot: 'speak for another host; its signed seq cannot be replayed' },
+  { key: 'Session capability', heldBy: 'operator browser or CLI', can: 'act as api.read / api.write / api.admin until it expires', cannot: 'exceed the caveats of any block in its chain' },
+];
+
+export const FAILURE_CASES = [
+  { c: 'Control plane down or partitioned', o: 'offline-hold: admitted work continues, new work refused, observations queued', t: 'chaos cp-total-outage, network-partition; M1' },
+  { c: 'Compromised member (valid member key)', o: 'can only sign within its delegation; every host still applies its own policy; rollbacks and impostor keys refused', t: 'pkg/node/sovereignty_test.go' },
+  { c: 'Replayed, forged or tampered observation', o: 'rejected with a specific reason; state unchanged', t: 'chaos replay-forgery; M1' },
+  { c: 'Stolen host key', o: '`dh node revoke-key` revokes that key', t: 'M3' },
+  { c: 'Revoked host', o: 'cut from mesh and routing, replicas rescheduled, new admission blocked', t: 'chaos revoked-host; M3' },
+  { c: 'Host clock skew', o: 'CLOCK_SKEW detected from bundle timestamps; admitted work held', t: 'chaos clock-skew' },
+  { c: 'Host ledger tampering', o: 'LEDGER_CORRUPT; no appends to the broken chain; operator seal recovers with the break recorded', t: 'chaos journal-corruption' },
+  { c: 'Audit ledger truncation or rewrite', o: 'detected offline by hash chain and signed checkpoints', t: 'pkg/audit; M1' },
+  { c: 'Storage corruption', o: 'BLAKE3 verification on read; quarantine; repair from peers with evidence', t: 'M2; chaos storage-replica-loss, disk-full' },
+  { c: 'Network observer', o: 'TLS on member APIs from first start, pinned bootstrap, mutual-TLS Raft, WireGuard between hosts', t: 'tls_test.go; M7' },
+];
+
+export const DELIBERATE_LIMITS = [
+  'The root key is the single anchor. Rotation is supported, but a stolen root can sign a rotation — keep it offline.',
+  'A member with a valid delegation can sign harmful-but-permitted work (for example, scaling an app to zero). Host policy bounds what runs; it cannot judge intent. Use `dh freeze` if you suspect compromise.',
+  'The process runtime does not enforce CPU or memory limits; admission details say so. Use the docker runtime for enforcement.',
+  'Session capabilities are bearer tokens. They stay in sessionStorage and the URL fragment, never server logs, and expire.',
 ];

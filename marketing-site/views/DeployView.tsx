@@ -1,151 +1,156 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { DEPLOY_RECIPES } from '../data/deployRecipes';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
+import React from 'react';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
-import { ClaimBadge } from '../components/ClaimBadge';
-import { Layers, Terminal, Copy, Check, CheckCircle2, ArrowRight } from 'lucide-react';
+import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
+import { RecordedSession } from '../components/RecordedSession';
+import { CommandBlock } from '../components/CommandBlock';
+import { CONTENT_REGISTRY } from '../data/registry';
+import { REPO_URL, BASELINE, repoPath } from '../lib/project';
+import { AlertTriangle } from 'lucide-react';
+
+const H2: React.FC<{ n: string; children: React.ReactNode }> = ({ n, children }) => (
+  <h2 className="text-xl sm:text-2xl font-bold font-display text-white flex items-baseline gap-3">
+    <span className="text-xs font-mono text-[#00FF41]">{n}</span>
+    <span>{children}</span>
+  </h2>
+);
 
 export const DeployView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/deploy/'];
-  const [selectedRecipeId, setSelectedRecipeId] = useState<string>('deploy-fastapi');
-  const [copiedType, setCopiedType] = useState<string | null>(null);
-
-  const activeRecipe = DEPLOY_RECIPES.find((r) => r.id === selectedRecipeId) || DEPLOY_RECIPES[0];
-
-  const handleCopy = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedType(type);
-    setTimeout(() => setCopiedType(null), 2000);
-  };
-
+  const fm = CONTENT_REGISTRY['/deploy/'];
   return (
-    <div className="space-y-12">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
+    <div className="space-y-12 max-w-5xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
 
-      {/* Header */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <Layers className="w-3.5 h-3.5" />
-          <span>FRAMEWORK RECIPES &amp; AUTO-DETECTION</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          Framework Deployment Recipes
-        </h1>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          Zero-config automated container build pipelines and sample configuration files for modern web stacks.
+      <header className="space-y-4 text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          No hosted demo, no simulator: you build the binaries and start a real cluster on your own
+          machine. Every process, key, signature and WireGuard handshake is real; they just share
+          one computer.
         </p>
-      </div>
+      </header>
 
-      {/* AEO Block */}
-      <div className="max-w-3xl mx-auto">
-        <AeoAnswerBlock
-          question="How does framework auto-detection work in Decentralized.Host?"
-          answer="Decentralized.Host inspects your project directory for signature files (such as requirements.txt for FastAPI, package.json for Next.js/Express, or custom Dockerfiles). If no Dockerfile is provided, it automatically generates a multi-stage OCI build pipeline and assigns memory/CPU allocations."
-          sourceContext="Framework Auto-Detection heuristic (control-plane/app/detect.py, cli/dhost/detect.py)"
+      <AeoAnswerBlock question="How do I try Decentralized.Host?" answer={fm.extractableAnswer!} sourceContext="README.md Quick start" />
+
+      <section className="space-y-4">
+        <H2 n="00">Requirements</H2>
+        <ul className="text-sm text-white/65 font-sans space-y-1.5">
+          <li>› <strong className="text-white">Go 1.26 or newer</strong>, git and make. Nothing else is needed for the local cluster.</li>
+          <li>› Optional: Docker (container runtime and the <code className="text-[#00FF41]">oom</code> chaos scenario), Python 3 (independent conformance implementation), Postgres (evidence mirror).</li>
+          <li>› Every run so far used macOS. Linux should work, but it has not been validated yet (PV1-S1 is pending).</li>
+        </ul>
+      </section>
+
+      <section className="space-y-4">
+        <H2 n="01">Build and start a local cluster</H2>
+        <CommandBlock
+          lines={[
+            `git clone ${REPO_URL}.git decentralized.host`,
+            'cd decentralized.host',
+            '# optional: check out the exact revision that passed the reference run',
+            `git checkout ${BASELINE.tag}`,
+            'make build',
+            './bin/dh dev up --dir ./devcluster',
+          ]}
         />
-      </div>
+        <p className="text-sm text-white/60 font-sans leading-relaxed">
+          <code className="text-[#00FF41]">dev up</code> starts 3 control-plane members and 4 hosts (one of them an
+          edge) as separate processes bound to loopback, pushes the <code className="text-[#00FF41]">dh-beacon</code> sample
+          artifact, deploys a 3-replica app and prints a console URL. Dev clusters serve the API without TLS
+          unless you pass <code className="text-[#00FF41]">--tls</code>; a real installation uses TLS by default.
+        </p>
+      </section>
 
-      {/* Framework Selector Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none font-mono text-xs">
-        {DEPLOY_RECIPES.map((recipe) => (
-          <button
-            key={recipe.id}
-            onClick={() => setSelectedRecipeId(recipe.id)}
-            className={`px-4 py-2.5 rounded-xl whitespace-nowrap border transition-all ${
-              selectedRecipeId === recipe.id
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/80 font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                : 'bg-[#080b0f] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-            }`}
-          >
-            {recipe.name}
-          </button>
-        ))}
-      </div>
+      <section className="space-y-4">
+        <H2 n="02">Look around</H2>
+        <CommandBlock
+          lines={[
+            'export DH_HOME=./devcluster/operator',
+            './bin/dh get apps',
+            './bin/dh describe app web      # desired / admitted / observed, and every admission check',
+            './bin/dh mesh peers            # WireGuard handshakes and measured RTT',
+            './bin/dh audit verify          # fetch the ledger, verify chain and checkpoints locally',
+            './bin/dh chaos run --scenario leader-crash',
+          ]}
+        />
+        <p className="text-sm text-white/60 font-sans leading-relaxed">
+          This is what those commands printed on the reference machine. Your identifiers, timings and
+          ports will differ; the shape should not.
+        </p>
+        <RecordedSession />
+      </section>
 
-      {/* Recipe Detail Card */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap pb-6 border-b border-slate-800">
-          <div>
-            <span className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider">
-              {activeRecipe.category}
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold font-display text-white mt-1">
-              Deploy {activeRecipe.name}
-            </h2>
-            <div className="flex items-center gap-2 mt-2 font-mono text-xs text-slate-400">
-              <span>Runtime: <strong className="text-slate-200">{activeRecipe.runtime}</strong></span>
-              <span>•</span>
-              <span>Detected Files: <strong className="text-emerald-400">{activeRecipe.autoDetectFiles.join(', ') || 'Custom'}</strong></span>
-            </div>
-          </div>
-          <ClaimBadge status={activeRecipe.claimStatus} size="sm" />
+      <section className="space-y-4">
+        <H2 n="03">Deploy your own executable</H2>
+        <p className="text-sm text-white/60 font-sans leading-relaxed">
+          The <code className="text-[#00FF41]">process</code> runtime runs an executable from the cluster&apos;s content-addressed
+          store. It receives its port in <code className="text-[#00FF41]">$PORT</code> and should answer the health path.
+          Build it for the hosts&apos; OS and architecture.
+        </p>
+        <CommandBlock
+          lines={[
+            './bin/dh artifact push ./myservice --name myservice --sign     # prints myservice@b3:<digest>',
+          ]}
+        />
+        <CommandBlock
+          title="web.yaml"
+          lines={[
+            'apiVersion: dh/v1',
+            'kind: Application',
+            'metadata: {name: web}',
+            'spec:',
+            '  replicas: 2',
+            '  image: myservice@b3:<digest>',
+            '  resources: {cpu: 100m, mem: 32Mi}',
+            '  placement: {tiers: [trusted], spread: failure-domain, antiAffinity: hard}',
+            '  ports: [{name: http}]',
+            '  health: {http: /healthz, interval: 1s}',
+          ]}
+        />
+        <CommandBlock
+          lines={['./bin/dh apply -f web.yaml', './bin/dh rollout status app web', './bin/dh describe app web']}
+        />
+        <p className="text-sm text-white/60 font-sans leading-relaxed">
+          For a container, set <code className="text-[#00FF41]">image</code> to a digest-pinned reference such as{' '}
+          <code className="text-[#00FF41]">busybox@sha256:&lt;64 hex&gt;</code>; the manifest then selects the{' '}
+          <code className="text-[#00FF41]">docker</code> runtime, which enforces memory and CPU limits. Unpinned images are
+          refused. Manifests are strict: unknown fields are rejected.
+        </p>
+        <div className="p-4 rounded-lg border border-[#ffbd2e]/30 bg-[#ffbd2e]/5 flex gap-3 text-sm text-white/70 font-sans">
+          <AlertTriangle className="w-4 h-4 text-[#ffbd2e] shrink-0 mt-0.5" />
+          <span>
+            There is no git-push deployment, image build or framework detection. Build your artifact with the
+            tools you already use, then push it or reference its image digest. The process runtime does
+            not enforce the CPU and memory you request; the admission details say so.
+          </span>
         </div>
+      </section>
 
-        {/* Prerequisites */}
-        <div className="p-4 rounded-xl bg-[#05070a] border border-slate-800 space-y-2">
-          <h3 className="text-xs font-mono font-semibold text-emerald-400 uppercase">
-            Prerequisites:
-          </h3>
-          <ul className="space-y-1 text-xs text-slate-300">
-            {activeRecipe.prerequisites.map((p, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                <span>{p}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      <section className="space-y-4">
+        <H2 n="04">Open the console, then stop</H2>
+        <CommandBlock
+          lines={[
+            './bin/dh console --read-only   # prints a URL; the session token is in the #fragment',
+            './bin/dh dev down --dir ./devcluster',
+          ]}
+        />
+      </section>
 
-        {/* Reference Dockerfile -- for dhost ship (the default, no-Dockerfile path),
-            this is informational only: the control plane generates and uses its
-            own Dockerfile server-side for detected stacks, always on port 8080
-            (port 80 for static sites) regardless of framework convention. This
-            reference version follows this framework's normal convention instead
-            (e.g. Node on 3000) -- use it with the older `dhost init` + `dhost
-            deploy` local-build path if you need that specific behavior. */}
-        <div className="rounded-xl bg-[#040609] border border-slate-800 overflow-hidden font-mono text-xs">
-          <div className="px-4 py-2 bg-[#080b0f] border-b border-slate-800 flex items-center justify-between">
-            <span className="text-slate-300 font-semibold">Reference Dockerfile (you don't need to write this for `dhost ship`)</span>
-            <button
-              onClick={() => handleCopy(activeRecipe.dockerfileSnippet, 'dockerfile')}
-              className="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors"
-            >
-              {copiedType === 'dockerfile' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedType === 'dockerfile' ? 'Copied' : 'Copy'}</span>
-            </button>
-          </div>
-          <pre className="p-4 text-emerald-300 overflow-x-auto leading-relaxed max-h-[300px]">
-            {activeRecipe.dockerfileSnippet}
-          </pre>
-          <p className="px-4 py-3 text-[11px] text-slate-500 border-t border-slate-800">
-            `dhost ship` auto-detects your stack and generates its own Dockerfile server-side (always port 8080, or 80 for static sites) -- you never need to write or commit one. This reference version follows {activeRecipe.name}'s normal port convention instead; use it with `dhost init` + `dhost deploy` (the local-build path) if you specifically need that.
-          </p>
-        </div>
-
-        {/* Deployment Steps */}
-        <div className="space-y-3 pt-4 border-t border-slate-800">
-          <h3 className="text-lg font-bold font-display text-white">
-            Deployment Instructions
-          </h3>
-          <div className="space-y-2">
-            {activeRecipe.steps.map((step, idx) => (
-              <div key={idx} className="p-3.5 rounded-lg bg-slate-900/50 border border-slate-800 flex items-start gap-3 text-xs sm:text-sm text-slate-300 font-sans">
-                <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono text-xs font-bold shrink-0 mt-0.5">
-                  {idx + 1}
-                </span>
-                <span>{step}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <section className="space-y-3">
+        <H2 n="05">Across real machines</H2>
+        <p className="text-sm text-white/60 font-sans leading-relaxed">
+          The install runbook covers a TLS cluster with three control-plane members and hosts that join
+          with single-use tokens. It is scripted and passed on the reference machine, but it has not yet
+          been run across separate machines — that is exactly what PV-1 stage 2 will test. Follow{' '}
+          <a href={repoPath('docs/runbooks/install.md')} target="_blank" rel="noreferrer" className="text-[#00FF41] underline decoration-[#00FF41]/40 hover:text-white">
+            docs/runbooks/install.md
+          </a>{' '}
+          or the <a href="/guides/" className="text-[#00FF41] underline decoration-[#00FF41]/40 hover:text-white">TLS install guide</a>.
+        </p>
+      </section>
     </div>
   );
 };

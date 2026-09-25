@@ -20,6 +20,7 @@ import {
   Server
 } from 'lucide-react';
 import { useNavigate } from './useNavigate';
+import { REPO_URL } from '../lib/project';
 
 interface Props {
   onOpenSearch: () => void;
@@ -38,16 +39,17 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
     { label: 'Security', path: '/security/' },
     { label: 'Docs', path: '/docs/' },
     { label: 'Guides', path: '/guides/' },
-    { label: 'Alternatives', path: '/alternatives/' },
-    { label: 'Deploy', path: '/deploy/' }
+    { label: 'Run it', path: '/deploy/' },
+    { label: 'Status', path: '/roadmap/' }
   ];
 
   const pillarLinks = [
-    { label: 'Decentralized Hosting', path: '/decentralized-hosting/', desc: 'Comprehensive category pillar & architecture' },
-    { label: 'Self-Hosted PaaS', path: '/self-hosted-paas/', desc: 'Production guide for multi-server PaaS' },
-    { label: 'DePIN Compute', path: '/depin/', desc: 'Physical compute nodes & useful workloads' },
-    { label: 'Engineering Roadmap', path: '/roadmap/', desc: 'Public milestones & delivery timeline' },
-    { label: 'Open Source & MIT', path: '/open-source/', desc: 'Community repository & contribution' }
+    { label: 'Decentralized Hosting', path: '/decentralized-hosting/', desc: 'What decentralization means here' },
+    { label: 'Self-Hosted PaaS?', path: '/self-hosted-paas/', desc: 'What it does and does not do' },
+    { label: 'Becoming a Host', path: '/depin/', desc: 'Invites and sovereign host policy' },
+    { label: 'Alternatives', path: '/alternatives/', desc: 'When another tool is the better choice' },
+    { label: 'FAQ', path: '/faq/', desc: 'Straight answers' },
+    { label: 'Source & License', path: '/open-source/', desc: 'Repository, verification, license status' }
   ];
 
   const handleNavClick = (path: string) => {
@@ -60,7 +62,7 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
     <header className="sticky top-0 z-40 w-full bg-[#050505]/90 backdrop-blur-md border-b border-[#00FF41]/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => handleNavClick('/')}
             className="flex items-center gap-3 group focus:outline-none"
@@ -73,18 +75,18 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
                 DECENTRALIZED<span className="text-[#00FF41]">.</span>HOST
               </div>
               <div className="text-[9px] font-mono text-white/40 uppercase tracking-widest hidden sm:block">
-                OPEN SOURCE INFRASTRUCTURE
+                SOVEREIGN HOSTS · GO
               </div>
             </div>
           </button>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-1 text-xs font-mono tracking-widest uppercase">
+          <nav className="hidden xl:flex items-center gap-0.5 text-xs font-mono tracking-widest uppercase">
             {navLinks.map((item) => (
               <button
                 key={item.path}
                 onClick={() => handleNavClick(item.path)}
-                className={`px-3 py-1.5 rounded text-xs font-mono tracking-wider uppercase transition-colors ${
+                className={`px-2.5 py-1.5 rounded text-xs font-mono tracking-wider uppercase transition-colors ${
                   currentPath === item.path
                     ? 'bg-[#00FF41]/10 text-[#00FF41] font-semibold border border-[#00FF41]/30'
                     : 'text-white/70 hover:text-[#00FF41] hover:bg-white/5'
@@ -99,13 +101,13 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
               <button
                 onClick={() => setPillarsDropdownOpen(!pillarsDropdownOpen)}
                 onBlur={() => setTimeout(() => setPillarsDropdownOpen(false), 200)}
-                className={`px-3 py-1.5 rounded text-xs font-mono tracking-wider uppercase flex items-center gap-1 transition-colors ${
-                  currentPath.includes('decentralized-hosting') || currentPath.includes('self-hosted-paas') || currentPath.includes('depin')
+                className={`px-2.5 py-1.5 rounded text-xs font-mono tracking-wider uppercase flex items-center gap-1 transition-colors ${
+                  pillarLinks.some((p) => p.path === currentPath)
                     ? 'bg-[#00FF41]/10 text-[#00FF41] font-semibold border border-[#00FF41]/30'
                     : 'text-white/70 hover:text-[#00FF41] hover:bg-white/5'
                 }`}
               >
-                <span>Pillars</span>
+                <span>More</span>
                 <ChevronDown className="w-3 h-3" />
               </button>
 
@@ -128,7 +130,7 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
                       onClick={() => handleNavClick('/pillars/')}
                       className="w-full text-left p-2 rounded hover:bg-white/5 transition-colors block text-xs font-bold text-[#00FF41] font-mono uppercase tracking-wider"
                     >
-                      Browse All 69 Pillars →
+                      Topic directory →
                     </button>
                   </div>
                 </div>
@@ -139,16 +141,6 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
 
         {/* Right Tools & CTA */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Status Indicator Pill */}
-          <div 
-            onClick={onOpenAudit}
-            className="hidden xl:flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded text-[10px] font-mono text-white/80 cursor-pointer hover:border-[#00FF41]/40 transition-colors"
-            title="Inspect Quality Gates and Cluster Telemetry"
-          >
-            <span className="w-2 h-2 rounded-full bg-[#00FF41] animate-pulse" />
-            <span className="text-[#00FF41] opacity-90 uppercase tracking-tighter">Network Operational</span>
-          </div>
-
           {/* Quick Search Button (Cmd+K) */}
           <button
             onClick={onOpenSearch}
@@ -156,7 +148,7 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
             title="Search documentation and commands"
           >
             <Search className="w-3.5 h-3.5 text-[#00FF41]" />
-            <span className="hidden md:inline">Search...</span>
+            <span className="hidden 2xl:inline">Search...</span>
             <kbd className="hidden sm:inline px-1.5 py-0.5 text-[9px] rounded bg-white/10 text-white/70 border border-white/10">
               ⌘K
             </kbd>
@@ -168,16 +160,16 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#00FF41]/10 hover:bg-[#00FF41]/20 text-[#00FF41] border border-[#00FF41]/30 text-xs font-mono font-medium transition-colors"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Audit Gates</span>
+            <span>Evidence</span>
           </button>
 
           {/* Get Started / GitHub Repo Link */}
           <a
-            href="https://github.com/CodesbyFebin/decentralized.hosting"
+            href={REPO_URL}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-white/5 border border-white/10 text-white text-[11px] font-mono uppercase tracking-wider hover:bg-[#00FF41] hover:text-black hover:border-[#00FF41] transition-all"
-            title="View GitHub Repository"
+            title="Source on GitHub"
           >
             <Github className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">GitHub</span>
@@ -186,7 +178,7 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
           {/* Mobile Menu Trigger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded lg:hidden bg-white/5 border border-white/10 text-white/80 hover:text-white"
+            className="p-2 rounded xl:hidden bg-white/5 border border-white/10 text-white/80 hover:text-white"
             aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -196,7 +188,7 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-[#00FF41]/20 bg-[#0a0a0a] p-4 space-y-3 font-mono text-xs">
+        <div className="xl:hidden border-b border-[#00FF41]/20 bg-[#0a0a0a] p-4 space-y-3 font-mono text-xs">
           <div className="grid grid-cols-2 gap-2">
             {navLinks.map((item) => (
               <button
@@ -215,7 +207,7 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
 
           <div className="pt-2 border-t border-white/10">
             <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono block mb-2">
-              Topic Pillars &amp; Foundations
+              More
             </span>
             <div className="space-y-1">
               {pillarLinks.map((p) => (
@@ -232,7 +224,7 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
                 onClick={() => handleNavClick('/pillars/')}
                 className="w-full text-left p-2 rounded bg-white/5 hover:bg-white/10 text-[#00FF41] font-bold uppercase tracking-wider"
               >
-                Browse All 69 Pillars →
+                Topic directory →
               </button>
             </div>
           </div>
@@ -245,10 +237,10 @@ export const Navbar: React.FC<Props> = ({ onOpenSearch, onOpenAudit }) => {
               }}
               className="flex-1 p-2 rounded bg-[#00FF41]/10 text-[#00FF41] border border-[#00FF41]/30 text-center font-medium uppercase tracking-wider"
             >
-              Inspect Quality Gates
+              Evidence
             </button>
             <a
-              href="https://github.com/CodesbyFebin/decentralized.hosting"
+              href={REPO_URL}
               target="_blank"
               rel="noreferrer"
               className="p-2 rounded bg-white/5 text-white border border-white/10 flex items-center justify-center gap-1"

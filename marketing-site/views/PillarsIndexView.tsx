@@ -24,7 +24,6 @@ export const PillarsIndexView: React.FC = () => {
     );
   }, [query, group]);
 
-  const writtenCount = PILLARS.filter((p) => p.written).length;
 
   return (
     <div className="space-y-10">
@@ -33,23 +32,19 @@ export const PillarsIndexView: React.FC = () => {
 
       <div className="space-y-4 text-center max-w-3xl mx-auto">
         <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          Decentralized.Host Pillar Directory
+          Topic Directory
         </h1>
         <p className="text-slate-300 text-sm leading-relaxed">
-          69 topic pillars across decentralized infrastructure, self-hosting, and Web3 --
-          a deliberately broad content directory, not a product feature list. Each page says
-          plainly whether the topic actually connects to what Decentralized.Host does.{' '}
-          <span className="text-emerald-400 font-semibold">{writtenCount} of 69</span>{' '}
-          {writtenCount >= PILLARS.length
-            ? 'have full write-ups -- built in batches over several passes, the same way this project\'s own docs grew, rather than all at once.'
-            : 'have full write-ups today; the rest carry a short, honest summary while more get written in batches, the same way this project\'s own docs grew.'}
+          {PILLARS.length} reference pages on decentralized infrastructure, self-hosting and Web3 --
+          general background, not a product feature list. Each page says plainly whether the
+          topic connects to what Decentralized.Host (the Go implementation) actually does. Most do not.
         </p>
       </div>
 
       <div className="max-w-3xl mx-auto">
         <AeoAnswerBlock
           question="What is the Decentralized.Host Pillar Directory?"
-          answer="A 69-page topic directory covering decentralized infrastructure, self-hosting/DevOps, and Web3/blockchain concepts. It is a broad content strategy, not a map of product features -- most topics (DAO governance, yield farming, NFT metadata) have no connection to the real product, and each page states that honestly rather than implying a capability that doesn't exist."
+          answer="A set of reference pages on decentralized infrastructure, self-hosting and Web3 topics. It is general background, not a map of product features: most topics (DAO governance, yield farming, NFT metadata) have no connection to Decentralized.Host, and each page says so."
           sourceContext="data/pillars.ts"
         />
       </div>
@@ -60,7 +55,7 @@ export const PillarsIndexView: React.FC = () => {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search 69 pillars..."
+            placeholder="Search topics..."
             className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#0a0a0a] border border-slate-800 text-sm text-slate-200 focus:outline-none focus:border-emerald-500/50 font-mono"
           />
         </div>

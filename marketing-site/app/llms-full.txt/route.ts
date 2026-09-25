@@ -1,54 +1,44 @@
 import { CONTENT_REGISTRY } from '../../data/registry';
 import { DOCS_DATA } from '../../data/docs';
 import { GUIDES_DATA } from '../../data/guides';
+import { FEATURES_DATA } from '../../data/features';
+import { ATTEMPTS } from '../../data/evidence';
+import { CLI_COMMANDS } from '../../data/cli';
+import { REPO_URL, BASELINE, EVIDENCE_SCOPE, LICENSE_STATUS } from '../../lib/project';
 
-// Real /llms-full.txt endpoint, resolved once at build time (output: 'export')
-// from the same registry/docs/guides data every page renders from -- ported
-// from the old scripts/generate-machine-files.ts pre-build step, which this
-// Route Handler now replaces.
-function buildLlmsFullTxt(): string {
+// /llms-full.txt, built once at build time from the same data every page renders.
+function build(): string {
+  const rule = '='.repeat(80);
   const pages = Object.values(CONTENT_REGISTRY)
-    .map(
-      (page) => `
-================================================================================
-URL: ${page.canonical}
-H1: ${page.h1}
-Type: ${page.contentType}
-Summary: ${page.description}
-Claim status: ${page.claimStatus}
-AEO answer: ${page.extractableAnswer || 'N/A'}
-`
-    )
-    .join('\n');
-
+    .filter((p) => p.contentType !== 'pillar' || !p.slug.includes('-tools'))
+    .map((p) => `${rule}\nURL: ${p.canonical}\nH1: ${p.h1}\nSummary: ${p.description}${p.extractableAnswer ? `\nAnswer: ${p.extractableAnswer}` : ''}`)
+    .join('\n\n');
+  const features = FEATURES_DATA.map(
+    (f) => `- [${f.claimStatus}] ${f.milestone} ${f.title}: ${f.summary} Evidence: ${f.evidence}.${f.limitation ? ` Limitation: ${f.limitation}` : ''}`,
+  ).join('\n');
+  const attempts = ATTEMPTS.map((a) => `- ${a.id} (${a.environment}, ${a.digest}): ${a.outcome}. ${a.note}`).join('\n');
   const docs = DOCS_DATA.map(
-    (d) => `
-================================================================================
-DOC: ${d.title}
-URL: https://decentralized.host/docs/#${d.slug}
-Category: ${d.category}
-
-${d.content}
-`
-  ).join('\n');
-
+    (d) => `${rule}\nDOC: ${d.title} (https://decentralized.host/docs/#${d.id}, source ${d.source})\n\n${d.body}${d.commands ? `\n\n${d.commands.map((c) => `$ ${c}`).join('\n')}` : ''}`,
+  ).join('\n\n');
   const guides = GUIDES_DATA.map(
-    (g) => `
-================================================================================
-GUIDE: ${g.title}
-URL: https://decentralized.host/guides/#${g.slug}
-Difficulty: ${g.difficulty} (${g.timeMinutes} min)
-Claim status: ${g.claimStatus}
+    (g) => `${rule}\nGUIDE: ${g.title} (https://decentralized.host/guides/#${g.slug}, follows ${g.source})\n\n${g.overview}\n\n${g.steps
+      .map((s, i) => `${i + 1}. ${s.title} -- ${s.description}${s.command ? `\n   $ ${s.command.replace(/\n/g, '\n     ')}` : ''}`)
+      .join('\n')}`,
+  ).join('\n\n');
+  const cli = CLI_COMMANDS.map((c) => `- ${c.command}: ${c.summary}`).join('\n');
 
-${g.architectureOverview}
+  return `# Decentralized.Host -- full reference
+# Built from the site's data, which is transcribed from ${REPO_URL}
+# (validated revision ${BASELINE.commit}, source ${BASELINE.sourceDigest}).
 
-Steps:
-${g.steps.map((s, i) => `${i + 1}. ${s.title} -- ${s.description}${s.command ? `\n   $ ${s.command}` : ''}`).join('\n')}
-`
-  ).join('\n');
+Scope of all evidence: ${EVIDENCE_SCOPE}
+License: ${LICENSE_STATUS.detail}
 
-  return `# decentralized.host -- Complete Technical Reference for LLM Retrieval
-# Generated at build time from the real site data (data/registry.ts, data/docs.ts, data/guides.ts)
+## Capabilities
+${features}
+
+## Validation attempts
+${attempts}
 
 ## Pages
 ${pages}
@@ -58,13 +48,14 @@ ${docs}
 
 ## Guides
 ${guides}
+
+## CLI
+${cli}
 `;
 }
 
 export const dynamic = 'force-static';
 
 export function GET() {
-  return new Response(buildLlmsFullTxt(), {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  });
+  return new Response(build(), { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 }

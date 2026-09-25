@@ -1,194 +1,135 @@
 'use client';
 
 import React from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
+import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { ClaimBadge } from '../components/ClaimBadge';
-import { Shield, Lock, Key, AlertTriangle, CheckCircle, FileText, Terminal, Copy } from 'lucide-react';
+import { CONTENT_REGISTRY } from '../data/registry';
+import { TRUST_ANCHORS, FAILURE_CASES, DELIBERATE_LIMITS } from '../data/architecture';
+import { repoPath } from '../lib/project';
+import { ClaimStatus } from '../types';
+
+const SECURITY_TESTS: { t: string; s: ClaimStatus; e: string }[] = [
+  { t: 'Signature tampering', s: 'VERIFIED', e: 'M1; chaos replay-forgery; conformance verify/tampered-payload' },
+  { t: 'Wrong key', s: 'VERIFIED', e: 'M1; conformance key-substitution, key-not-allowed' },
+  { t: 'Replay', s: 'VERIFIED', e: 'M1; chaos replay-forgery' },
+  { t: 'Generation rollback', s: 'VERIFIED', e: 'sovereignty_test.go; chaos stale-generation' },
+  { t: 'Revocation', s: 'VERIFIED', e: 'M1, M3; chaos revoked-host' },
+  { t: 'Forged shell or command', s: 'VERIFIED', e: 'exec is policy-gated (allowExec); commands are argv, never a shell' },
+  { t: 'Audit tampering', s: 'VERIFIED', e: 'pkg/audit; 14 conformance vectors; dh audit verify' },
+  { t: 'Compromised control plane (valid member key)', s: 'VERIFIED', e: 'sovereignty_test.go' },
+  { t: 'Canonicalization attacks', s: 'VERIFIED', e: '42 canon vectors: duplicate keys, lone surrogates, invalid UTF-8, floats, BOM' },
+  { t: 'Transport interception', s: 'VERIFIED', e: 'tls_test.go: plain HTTP refused, certificates verify against the root, bootstrap pinned' },
+  { t: 'Fuzzing', s: 'NOT_RUN', e: 'planned (P0-8)' },
+  { t: 'External security review', s: 'NOT_RUN', e: 'planned (P0-8)' },
+];
 
 export const SecurityView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/security/'];
-
-  const securityTxtContent = `Contact: https://github.com/CodesbyFebin/decentralized.hosting/security/advisories/new
-Expires: 2027-09-01T00:00:00.000Z
-Preferred-Languages: en
-Canonical: https://decentralized.host/.well-known/security.txt
-Policy: https://github.com/CodesbyFebin/decentralized.hosting/blob/main/SECURITY.md
-Acknowledgments: https://github.com/CodesbyFebin/decentralized.hosting/graphs/contributors`;
-
-  const threatMatrix = [
-    {
-      threat: 'Compromised Node Host attempting to tamper with coordinator',
-      mitigation: 'Node Agents only communicate via outbound HTTPS to control plane; coordinator verifies agent secret keys and rejects unauthenticated telemetry.',
-      status: 'MITIGATED'
-    },
-    {
-      threat: 'Malicious application escaping container cgroups to host',
-      mitigation: 'Containers execute in standard Docker namespaces with hardcoded cgroup memory (256MB) and CPU (1 vCPU) limits and no host volume mounts by default. This is stock Docker isolation, not rootless or additionally hardened -- stronger sandboxing (gVisor/Kata-style, confidential VMs) is Phase 3 roadmap, not built yet.',
-      status: 'MITIGATED'
-    },
-    {
-      threat: 'Unauthorized user executing arbitrary shell commands over Git SSH',
-      mitigation: 'Git SSH server forces session into `opengit-shell.sh` and only permits `git-receive-pack` commands matching authorized developer public keys.',
-      status: 'MITIGATED'
-    },
-    {
-      threat: 'Untrusted node operator inspecting application runtime memory',
-      mitigation: 'Under current Docker architecture, host root can inspect processes. Hardware enclave encryption (AMD SEV/Intel SGX) is scheduled for Phase 3.',
-      status: 'PLANNED HARDENING'
-    }
-  ];
-
+  const fm = CONTENT_REGISTRY['/security/'];
   return (
-    <div className="space-y-12">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
-
-      {/* Header */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <Shield className="w-3.5 h-3.5" />
-          <span>SECURITY ARCHITECTURE &amp; THREAT MATRIX</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          Security Model &amp; Trust Boundaries
-        </h1>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          Zero-fluff transparency regarding the current security architecture, authentication layers, container isolation boundaries, and ongoing cryptographic hardening.
+    <div className="space-y-12 max-w-6xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
+      <header className="space-y-4 text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          The design goal is that compromising the control plane is not the same as compromising a host.
+          Below: who holds which key, what each can and cannot do, what a host checks, and which attacks
+          are tested — including the ones that are not yet.
         </p>
-      </div>
+      </header>
 
-      {/* AEO Block */}
-      <div className="max-w-3xl mx-auto">
-        <AeoAnswerBlock
-          question="What is the security model of Decentralized.Host?"
-          answer="Decentralized.Host enforces security using bearer API key authentication on the FastAPI control plane, SSH public key verification via opengit-shell.sh for Git deployments, Linux process and network namespace isolation in Docker containers, and dynamic Let’s Encrypt TLS encryption on Traefik edge routers."
-          sourceContext="Security implementation (control-plane/app/auth.py, git-server/opengit-shell.sh, docker-compose.prod.yml)"
-        />
-      </div>
+      <AeoAnswerBlock question="Can a compromised control plane take over hosts?" answer={fm.extractableAnswer!} sourceContext="docs/trust-model.md" />
 
-      {/* 4 Pillars of Current Security */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs font-semibold">
-            <Lock className="w-4 h-4" />
-            <span>01. CONTROL PLANE AUTHENTICATION</span>
-          </div>
-          <h2 className="text-lg font-bold font-display text-white">
-            Bearer Token &amp; Scoped API Keys
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-            Every administrative request, deployment upload, log stream, or node registration must include a valid cryptographic token. Tokens are hashed with SHA-256 and verified on every route invocation via FastAPI dependency injection.
-          </p>
-          <div className="text-[11px] font-mono text-emerald-400 pt-2 border-t border-slate-800">
-            Implementation: control-plane/app/auth.py
-          </div>
-        </div>
-
-        <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs font-semibold">
-            <Key className="w-4 h-4" />
-            <span>02. RESTRICTED GIT SSH SHELL</span>
-          </div>
-          <h2 className="text-lg font-bold font-display text-white">
-            Forced opengit-shell.sh Execution
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-            Developers authenticate via standard SSH public keys (`id_ed25519` / `id_rsa`). The SSH daemon binds user shells strictly to `opengit-shell.sh`, rejecting interactive terminal logins and only permitting Git object transfers.
-          </p>
-          <div className="text-[11px] font-mono text-emerald-400 pt-2 border-t border-slate-800">
-            Implementation: git-server/opengit-shell.sh
-          </div>
-        </div>
-
-        <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs font-semibold">
-            <Shield className="w-4 h-4" />
-            <span>03. CONTAINER ISOLATION BOUNDARIES</span>
-          </div>
-          <h2 className="text-lg font-bold font-display text-white">
-            Linux Namespaces &amp; Resource Cgroups
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-            Worker nodes execute applications inside standardized Docker OCI containers with CPU quotas (`nano_cpus`), memory ceilings (`mem_limit`), and non-privileged kernel capabilities to prevent host exhaustion.
-          </p>
-          <div className="text-[11px] font-mono text-emerald-400 pt-2 border-t border-slate-800">
-            Implementation: node-agent/agent.py
-          </div>
-        </div>
-
-        <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs font-semibold">
-            <Terminal className="w-4 h-4" />
-            <span>04. AUTOMATED TLS AT INGRESS</span>
-          </div>
-          <h2 className="text-lg font-bold font-display text-white">
-            Strict Let’s Encrypt ACME &amp; HSTS
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-            Traefik proxies all external traffic over port 443 with automated TLS certificate issuance and renewal. Plain HTTP requests on port 80 are permanently redirected to HTTPS with standard security headers.
-          </p>
-          <div className="text-[11px] font-mono text-emerald-400 pt-2 border-t border-slate-800">
-            Implementation: docker-compose.prod.yml
-          </div>
-        </div>
-      </div>
-
-      {/* Threat Matrix Table */}
-      <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-4">
-        <h2 className="text-xl font-bold font-display text-white">
-          Active Threat Model &amp; Defense Matrix
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-400 font-sans">
-          Factual audit of threat vectors, mitigation mechanisms, and ongoing security work.
-        </p>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs sm:text-sm">
-            <thead>
-              <tr className="border-b border-slate-800 font-mono text-xs text-slate-400 uppercase">
-                <th className="py-3 px-4 w-1/3">Threat Vector</th>
-                <th className="py-3 px-4 w-1/2">Mitigation Strategy</th>
-                <th className="py-3 px-4">Status</th>
-              </tr>
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-white font-display">Keys</h2>
+        <div className="overflow-x-auto rounded-lg border border-white/10">
+          <table className="w-full text-sm font-sans">
+            <thead className="bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <tr><th className="text-left p-3">Key</th><th className="text-left p-3">Held by</th><th className="text-left p-3">Can</th><th className="text-left p-3">Cannot</th></tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-sans">
-              {threatMatrix.map((t, idx) => (
-                <tr key={idx} className="hover:bg-slate-900/40">
-                  <td className="py-3.5 px-4 font-semibold text-slate-200">
-                    {t.threat}
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-300 leading-relaxed">
-                    {t.mitigation}
-                  </td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-emerald-400">
-                    {t.status}
-                  </td>
+            <tbody>
+              {TRUST_ANCHORS.map((a) => (
+                <tr key={a.key} className="border-t border-white/10 align-top">
+                  <td className="p-3 font-bold text-white whitespace-nowrap">{a.key}</td>
+                  <td className="p-3 text-white/60">{a.heldBy}</td>
+                  <td className="p-3 text-white/70">{a.can}</td>
+                  <td className="p-3 text-white/70">{a.cannot}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      {/* RFC 9116 security.txt */}
-      <div className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-4 font-mono">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 text-slate-200 text-sm font-bold font-display">
-            <FileText className="w-4 h-4 text-emerald-400" />
-            <span>/.well-known/security.txt (RFC 9116 Compliant)</span>
-          </div>
-          <span className="text-xs text-slate-400">Vulnerability Disclosure Protocol</span>
+      <section className="p-6 rounded-lg bg-[#0a0a0a] border border-[#00FF41]/30 space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">What a host checks before it runs anything</h2>
+        <ol className="text-sm text-white/70 font-sans space-y-1.5 list-decimal pl-5">
+          <li>The bundle chains to the <strong className="text-white">pinned root</strong> — the root from its join token, or from a rotation that root signed.</li>
+          <li>The bundle signer is in the root-signed roster, and its state index is not older than one already accepted.</li>
+          <li>The assignment is signed by a roster member, names this host, and has a generation at least as high as any already admitted.</li>
+          <li>The capability chain authorizes this assignment, host, generation, artifact digest and resources, down from the root.</li>
+          <li>Its own <code className="text-[#00FF41]">policy.yaml</code>: tiers, runtimes, digest pinning, publisher attestation, federated work, caps.</li>
+          <li>The artifact bytes hash to the assigned digest.</li>
+        </ol>
+        <p className="text-sm text-white/60 font-sans">
+          If any check fails, nothing new starts; if the same generation is already running it is held, not stopped.
+          Every decision goes into the host&apos;s own hash-chained ledger. In total the host evaluates 18 ordered checks
+          (spec §9.3), shown per replica by <code className="text-[#00FF41]">dh describe app</code>.
+        </p>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-white font-display">Failure and attack cases</h2>
+        <div className="overflow-x-auto rounded-lg border border-white/10">
+          <table className="w-full text-sm font-sans">
+            <thead className="bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <tr><th className="text-left p-3">Case</th><th className="text-left p-3">Outcome</th><th className="text-left p-3">Tested by</th></tr>
+            </thead>
+            <tbody>
+              {FAILURE_CASES.map((f) => (
+                <tr key={f.c} className="border-t border-white/10 align-top">
+                  <td className="p-3 text-white font-medium">{f.c}</td>
+                  <td className="p-3 text-white/70">{f.o}</td>
+                  <td className="p-3 text-white/50 font-mono text-xs">{f.t}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </section>
 
-        <pre className="p-4 rounded-xl bg-black border border-slate-800 text-xs text-emerald-400 overflow-x-auto leading-relaxed">
-          {securityTxtContent}
-        </pre>
-      </div>
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-white font-display">Security tests</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {SECURITY_TESTS.map((x) => (
+            <div key={x.t} className="p-3 rounded bg-[#0a0a0a] border border-white/10 flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm text-white font-medium">{x.t}</div>
+                <div className="text-[11px] font-mono text-white/45 mt-0.5">{x.e}</div>
+              </div>
+              <ClaimBadge status={x.s} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="p-6 rounded-lg bg-[#0a0a0a] border border-[#ffbd2e]/30 space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">Deliberate limits</h2>
+        <ul className="text-sm text-white/70 font-sans space-y-1.5">
+          {DELIBERATE_LIMITS.map((l) => <li key={l}>› {l}</li>)}
+          <li>› Root key custody (offline signer or HSM) is not implemented.</li>
+        </ul>
+      </section>
+
+      <p className="text-xs text-white/40 font-sans">
+        Full model:{' '}
+        <a href={repoPath('docs/trust-model.md')} target="_blank" rel="noreferrer" className="text-[#00FF41] underline decoration-[#00FF41]/40">docs/trust-model.md</a>.
+        To report a suspected vulnerability, contact the maintainer privately through{' '}
+        <a href="https://github.com/CodesbyFebin" target="_blank" rel="noreferrer" className="text-[#00FF41] underline decoration-[#00FF41]/40">github.com/CodesbyFebin</a>{' '}
+        rather than opening a public issue.
+      </p>
     </div>
   );
 };

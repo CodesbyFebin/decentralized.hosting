@@ -1,78 +1,42 @@
-// Real /openapi.json endpoint, resolved once at build time (output: 'export').
-// Ported from the old scripts/generate-machine-files.ts pre-build step.
-const OPENAPI_SPEC = {
-  openapi: '3.1.0',
-  info: {
-    title: 'decentralized.host control plane API',
-    version: '0.1.0',
-    description:
-      'Self-hosted REST API -- no fixed public instance. Every mesh runs its own control plane; substitute your own base URL. No /api/v1 prefix -- paths are relative to the root. See control-plane/app/routers/ in the repo for the real implementation.',
-  },
-  servers: [
-    { url: 'http://localhost:8000', description: 'Default local dev URL; production is whatever domain you deploy the control plane to' },
-  ],
-  security: [{ BearerAuth: [] }],
-  components: {
-    securitySchemes: {
-      BearerAuth: { type: 'http', scheme: 'bearer', description: 'The deploy API key (DEPLOY_API_KEY)' },
-    },
-  },
-  paths: {
-    '/healthz': {
-      get: { summary: 'Health check', security: [], responses: { '200': { description: '{"status": "ok"}' } } },
-    },
-    '/deployments/detect': {
-      post: { summary: 'Upload source, get back detected stack + generated Dockerfile', responses: { '200': { description: 'Detection result + upload_id' } } },
-    },
-    '/deployments/ship': {
-      post: { summary: 'Build and deploy from an upload_id or fresh upload + Dockerfile', responses: { '200': { description: 'Deployment result' } } },
-    },
-    '/deployments/push': {
-      post: { summary: 'Single-call detect+build+deploy from one tarball -- what the git server post-receive hook calls', responses: { '200': { description: 'Deployment result' } } },
-    },
-    '/deployments': {
-      get: { summary: 'List all deployments', responses: { '200': { description: 'Deployment[]' } } },
-    },
-    '/deployments/{name}': {
-      get: { summary: "One deployment's status", responses: { '200': { description: 'Deployment' } } },
-      delete: { summary: 'Tear down the container and delete the record', responses: { '200': { description: 'ok' } } },
-    },
-    '/deployments/{name}/logs': {
-      get: { summary: 'Last ~200 log lines', responses: { '200': { description: 'text' } } },
-    },
-    '/deployments/{name}/releases': {
-      get: { summary: 'Release/deploy history', responses: { '200': { description: 'Release[]' } } },
-    },
-    '/nodes': {
-      get: { summary: 'List registered compute nodes', responses: { '200': { description: 'Node[]' } } },
-    },
-    '/auth/node-join': {
-      post: { summary: 'A node registers with join_secret, gets back a JWT (node auth, separate from the deploy-key bearer token)', security: [], responses: { '200': { description: '{"token": "..."}' } } },
-    },
-    '/git/keys': {
-      get: { summary: 'List registered SSH keys', responses: { '200': { description: 'SSHKey[]' } } },
-      post: { summary: 'Register an SSH public key', responses: { '200': { description: 'SSHKey' } } },
-    },
-    '/git/keys/authorized_keys': {
-      get: { summary: 'Plain-text authorized_keys format, polled by the git-server container', security: [], responses: { '200': { description: 'text' } } },
-    },
-    '/blockchain/status': {
-      get: { summary: 'Whether Solana devnet credits are enabled, mint address, reward config', responses: { '200': { description: 'BlockchainStatus' } } },
-    },
-    '/blockchain/credits/{node_id}': {
-      get: { summary: 'Credit balance + mint ledger for a node', responses: { '200': { description: 'CreditLedger[]' } } },
-    },
-    '/assistant/status': {
-      get: { summary: 'Whether the AI assistant is configured (GOOGLE_API_KEY set)', responses: { '200': { description: '{"enabled": boolean}' } } },
-    },
-    '/assistant/chat': {
-      post: { summary: 'Read-only chat with the AI assistant -- cannot deploy or delete anything', responses: { '200': { description: '{"reply": "...", "tool_calls": [...]}' } } },
-    },
-  },
+import { API_ROUTES } from '../../data/api';
+import { REPO_URL, BASELINE } from '../../lib/project';
+
+// /openapi.json: the control plane's real routes, extracted from the Go
+// source. Paths and methods only -- request and response schemas are not
+// described here; the handlers in pkg/control are the reference.
+const GROUP_NOTE: Record<string, string> = {
+  operator: 'Operator API. Bearer capability (dhcap1.…) with api.read / api.write / api.admin caveats.',
+  host: 'Host API. Called by enrolled hosts with signed envelopes; not for operators.',
+  federation: 'Federation API between clusters under a root-signed agreement.',
+  peer: 'Peer API on mesh addresses.',
 };
+
+function build() {
+  const paths: Record<string, Record<string, unknown>> = {};
+  for (const r of API_ROUTES) {
+    paths[r.path] ??= {};
+    paths[r.path][r.method.toLowerCase()] = {
+      tags: [r.group],
+      summary: `${r.method} ${r.path}`,
+      description: GROUP_NOTE[r.group],
+      responses: { default: { description: 'See the handler in pkg/control.' } },
+    };
+  }
+  return {
+    openapi: '3.1.0',
+    info: {
+      title: 'Decentralized.Host control plane (dh-control)',
+      version: BASELINE.commit,
+      description: `Routes registered by dh-control at ${BASELINE.commit}, extracted from the source (${REPO_URL}/tree/${BASELINE.commit}/pkg/control). There is no public instance: every cluster runs its own control plane, served over TLS on the member API address (default port 7700). Schemas are not documented here.`,
+    },
+    servers: [{ url: 'https://{member}:7700', variables: { member: { default: 'cp1.example.net' } } }],
+    tags: Object.entries(GROUP_NOTE).map(([name, description]) => ({ name, description })),
+    paths,
+  };
+}
 
 export const dynamic = 'force-static';
 
 export function GET() {
-  return Response.json(OPENAPI_SPEC);
+  return new Response(JSON.stringify(build(), null, 2), { headers: { 'Content-Type': 'application/json' } });
 }

@@ -1,161 +1,132 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { FEATURES_DATA } from '../data/features';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { ClaimBadge } from '../components/ClaimBadge';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
+import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
+import { ClaimBadge, CLAIM_DESCRIPTIONS } from '../components/ClaimBadge';
+import { CONTENT_REGISTRY } from '../data/registry';
+import { FEATURES_DATA, FEATURE_COUNTS } from '../data/features';
+import { EVIDENCE_SCOPE, repoPath } from '../lib/project';
 import { ClaimStatus } from '../types';
-import { Cpu, Terminal, Shield, Check, Filter, Code2, ArrowRight } from 'lucide-react';
+import { CHAOS_SCENARIOS } from '../data/chaos';
+
+const FILTERS: (ClaimStatus | 'ALL')[] = ['ALL', 'VERIFIED', 'LIMITED', 'NOT_IMPLEMENTED', 'NOT_RUN'];
 
 export const FeaturesView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/features/'];
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-
-  const categories = [
-    { id: 'all', label: 'All Categories' },
-    { id: 'deployment', label: 'Deployment & Ingestion' },
-    { id: 'compute-mesh', label: 'Compute Mesh & Nodes' },
-    { id: 'routing', label: 'Routing & Ingress' },
-    { id: 'developer-tools', label: 'Developer Tooling' },
-    { id: 'security', label: 'Security & Attestation' },
-    { id: 'economics', label: 'Economic Ledgers' }
-  ];
-
-  const statuses = [
-    { id: 'all', label: 'All Claim States' },
-    { id: 'IMPLEMENTED', label: 'Implemented' },
-    { id: 'EXPERIMENTAL', label: 'Experimental' },
-    { id: 'PLANNED', label: 'Planned' }
-  ];
-
-  const filteredFeatures = FEATURES_DATA.filter((f) => {
-    const matchesCat = selectedCategory === 'all' || f.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || f.claimStatus === selectedStatus;
-    return matchesCat && matchesStatus;
-  });
+  const fm = CONTENT_REGISTRY['/features/'];
+  const [filter, setFilter] = useState<ClaimStatus | 'ALL'>('ALL');
+  const shown = FEATURES_DATA.filter((f) => filter === 'ALL' || f.claimStatus === filter);
+  const milestones = Array.from(new Set(shown.map((f) => f.milestone)));
 
   return (
-    <div className="space-y-12">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
+    <div className="space-y-10 max-w-6xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
 
-      {/* Header */}
-      <div className="space-y-4 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <span>ZERO HALLUCINATION CAPABILITY DIRECTORY</span>
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          Platform Features &amp; Verified Matrix
-        </h1>
-        <p className="text-slate-300 text-sm leading-relaxed">
-          Every feature in Decentralized.Host is strictly classified against the target repository state. We distinguish between fully implemented, experimental prototypes, and planned architecture milestones.
+      <header className="space-y-4 text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          Transcribed from the production blueprint in the Go repository. A label changes only when new
+          evidence changes it — never because code exists.
         </p>
-      </div>
+      </header>
 
-      {/* AEO Block */}
-      <div className="max-w-3xl mx-auto">
-        <AeoAnswerBlock
-          question="What features does Decentralized.Host support?"
-          answer="Decentralized.Host supports Git SSH push and CLI deployments, smart resource-aware multi-node scheduling, Docker container execution via decoupled node agents, automatic Traefik SSL routing, versioned rollbacks, and zero-config framework auto-detection for FastAPI, Next.js, and Express."
-          sourceContext="Repository verified feature matrix (cli/dhost, control-plane/app, node-agent)"
-        />
-      </div>
+      <AeoAnswerBlock question="How are capabilities labelled?" answer={fm.extractableAnswer!} sourceContext="docs/BLUEPRINT.md" />
 
-      {/* Filter Controls */}
-      <div className="p-4 rounded-xl bg-[#080b0f] border border-slate-800 flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <Filter className="w-4 h-4 text-emerald-400 shrink-0" />
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedCategory(c.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap transition-colors ${
-                selectedCategory === c.id
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold'
-                  : 'text-slate-400 hover:text-slate-200 bg-slate-900/60'
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-2 font-mono text-xs">
-          {statuses.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setSelectedStatus(s.id)}
-              className={`px-2.5 py-1 rounded-md transition-colors ${
-                selectedStatus === s.id
-                  ? 'bg-slate-800 text-white font-bold border border-slate-700'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filteredFeatures.map((feat) => (
-          <div
-            key={feat.id}
-            id={feat.slug}
-            className="p-6 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-4 hover:border-slate-700 transition-colors flex flex-col justify-between"
-          >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                  {feat.category}
-                </span>
-                <ClaimBadge status={feat.claimStatus} size="sm" />
-              </div>
-
-              <h2 className="text-xl font-bold font-display text-white">
-                {feat.title}
-              </h2>
-
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
-                {feat.description}
-              </p>
-
-              <div className="space-y-2 pt-2">
-                <span className="text-[11px] font-mono text-slate-400 uppercase font-semibold block">
-                  Technical Capabilities:
-                </span>
-                <ul className="space-y-1.5 text-xs text-slate-300">
-                  {feat.technicalCapabilities.map((cap, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-emerald-400 font-mono">✔</span>
-                      <span>{cap}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {(['VERIFIED', 'LIMITED', 'NOT_IMPLEMENTED', 'NOT_RUN'] as ClaimStatus[]).map((s) => (
+          <div key={s} className="p-4 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-2">
+            <div className="flex items-center justify-between">
+              <ClaimBadge status={s} />
+              <span className="text-xl font-bold font-mono text-white">{FEATURE_COUNTS[s]}</span>
             </div>
-
-            <div className="pt-4 border-t border-slate-800/80 space-y-2 font-mono text-xs">
-              <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                <span>Source File:</span>
-                <span className="text-emerald-400 truncate max-w-[240px]">{feat.codeSource}</span>
-              </div>
-              {feat.cliCommand && (
-                <div className="p-2 rounded bg-slate-950 border border-slate-800 text-emerald-300 text-[11px] truncate">
-                  $ {feat.cliCommand}
-                </div>
-              )}
-            </div>
+            <p className="text-[11px] text-white/50 font-sans leading-relaxed">{CLAIM_DESCRIPTIONS[s].description}</p>
           </div>
         ))}
+      </section>
+
+      <p className="text-xs text-[#ffbd2e]/90 font-mono border-l-2 border-[#ffbd2e]/50 pl-3">{EVIDENCE_SCOPE}</p>
+
+      <div className="flex gap-2 flex-wrap" role="group" aria-label="Filter by status">
+        {FILTERS.map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            aria-pressed={filter === f}
+            className={`px-3 py-1.5 rounded text-[11px] font-mono uppercase tracking-wider border transition-colors ${
+              filter === f ? 'bg-[#00FF41]/10 text-[#00FF41] border-[#00FF41]/40' : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
+            }`}
+          >
+            {f === 'ALL' ? `All (${FEATURES_DATA.length})` : f.replace('_', ' ')}
+          </button>
+        ))}
       </div>
+
+      {milestones.map((m) => (
+        <section key={m} className="space-y-3">
+          <h2 className="text-sm font-mono text-white/50 uppercase tracking-widest">
+            {m === '—' ? 'Cross-cutting' : m}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {shown
+              .filter((f) => f.milestone === m)
+              .map((f) => (
+                <article key={f.id} id={f.id} className="p-5 rounded-lg bg-[#0a0a0a] border border-white/10 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-bold text-white text-base font-display">{f.title}</h3>
+                    <ClaimBadge status={f.claimStatus} />
+                  </div>
+                  <p className="text-sm text-white/65 leading-relaxed font-sans">{f.summary}</p>
+                  {f.limitation && (
+                    <p className="text-xs text-[#ffbd2e]/90 leading-relaxed font-sans border-l-2 border-[#ffbd2e]/40 pl-3">
+                      Limitation: {f.limitation}
+                    </p>
+                  )}
+                  <div className="pt-3 border-t border-white/10 space-y-1.5 font-mono text-[11px]">
+                    <div className="text-white/45">evidence: {f.evidence}</div>
+                    {f.cliCommand && (
+                      <div className="text-[#00FF41] bg-[#00FF41]/5 px-2 py-1 rounded border border-[#00FF41]/20 overflow-x-auto whitespace-nowrap">$ {f.cliCommand}</div>
+                    )}
+                  </div>
+                </article>
+              ))}
+          </div>
+        </section>
+      ))}
+
+      <section id="chaos-scenarios" className="space-y-3 scroll-mt-24">
+        <h2 className="text-xl font-bold text-white font-display">The 17 chaos scenarios</h2>
+        <p className="text-sm text-white/60 font-sans">
+          From <code className="text-[#00FF41]">dh chaos list</code>. Topology is control-plane members / hosts / edges; every
+          scenario runs on its own disposable cluster, under traffic. All 17 passed in REF-MAC-A03 — on one machine.
+        </p>
+        <div className="overflow-x-auto rounded-lg border border-white/10">
+          <table className="w-full text-xs font-sans">
+            <thead className="bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-white/50">
+              <tr><th className="text-left p-2.5">Scenario</th><th className="text-left p-2.5">Topology</th><th className="text-left p-2.5">Injection</th><th className="text-left p-2.5">Invariant checked</th></tr>
+            </thead>
+            <tbody>
+              {CHAOS_SCENARIOS.map((c) => (
+                <tr key={c.id} className="border-t border-white/10 align-top">
+                  <td className="p-2.5 font-mono text-[#00FF41] whitespace-nowrap">{c.id}</td>
+                  <td className="p-2.5 font-mono text-white/50 whitespace-nowrap">{c.topology}</td>
+                  <td className="p-2.5 text-white/70 min-w-[200px]">{c.injection}</td>
+                  <td className="p-2.5 text-white/60 min-w-[260px]">{c.invariant}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p className="text-xs text-white/40 font-sans">
+        Source of truth:{' '}
+        <a href={repoPath('docs/BLUEPRINT.md')} target="_blank" rel="noreferrer" className="text-[#00FF41] underline decoration-[#00FF41]/40">
+          docs/BLUEPRINT.md
+        </a>
+        . If this page and the blueprint disagree, the blueprint wins.
+      </p>
     </div>
   );
 };

@@ -6,7 +6,7 @@ import { CONTENT_REGISTRY } from '../data/registry';
 import { FEATURES_DATA } from '../data/features';
 import { DOCS_DATA } from '../data/docs';
 import { GUIDES_DATA } from '../data/guides';
-import { DEPLOY_RECIPES } from '../data/deployRecipes';
+import { CLI_COMMANDS } from '../data/cli';
 import { ClaimBadge } from './ClaimBadge';
 import { useNavigate } from './useNavigate';
 
@@ -47,98 +47,40 @@ export const SearchModal: React.FC<Props> = ({ isOpen, onClose }) => {
       claimStatus?: any;
     }> = [];
 
-    // Search Pages
+    const has = (...xs: (string | undefined)[]) => xs.some((x) => x?.toLowerCase().includes(q));
+
+    // Pages
     Object.values(CONTENT_REGISTRY).forEach((p) => {
-      if (
-        p.title.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q) ||
-        p.h1.toLowerCase().includes(q) ||
-        p.primaryEntity.toLowerCase().includes(q) ||
-        p.secondaryEntities.some((e) => e.toLowerCase().includes(q))
-      ) {
-        items.push({
-          id: p.id,
-          title: p.title,
-          snippet: p.description,
-          path: p.slug,
-          category: 'Page / Pillar',
-          icon: FileText,
-          claimStatus: p.claimStatus
-        });
+      if (has(p.title, p.description, p.h1, p.primaryEntity, ...p.secondaryEntities)) {
+        items.push({ id: p.id, title: p.h1, snippet: p.description, path: p.slug, category: 'Page', icon: FileText });
       }
     });
 
-    // Search Features
+    // Capabilities
     FEATURES_DATA.forEach((f) => {
-      if (
-        f.title.toLowerCase().includes(q) ||
-        f.summary.toLowerCase().includes(q) ||
-        f.description.toLowerCase().includes(q) ||
-        f.codeSource.toLowerCase().includes(q)
-      ) {
-        items.push({
-          id: f.id,
-          title: f.title,
-          snippet: f.summary,
-          path: `/features/#${f.slug}`,
-          category: 'Feature Matrix',
-          icon: Cpu,
-          claimStatus: f.claimStatus
-        });
+      if (has(f.title, f.summary, f.evidence, f.limitation, f.cliCommand)) {
+        items.push({ id: f.id, title: f.title, snippet: f.summary, path: `/features/#${f.id}`, category: 'Capability', icon: Cpu, claimStatus: f.claimStatus });
       }
     });
 
-    // Search Docs
+    // Docs
     DOCS_DATA.forEach((d) => {
-      if (
-        d.title.toLowerCase().includes(q) ||
-        d.description.toLowerCase().includes(q) ||
-        d.content.toLowerCase().includes(q)
-      ) {
-        items.push({
-          id: d.id,
-          title: d.title,
-          snippet: d.description,
-          path: `/docs/#${d.slug}`,
-          category: 'Documentation',
-          icon: BookOpen
-        });
+      if (has(d.title, d.body, ...(d.commands ?? []))) {
+        items.push({ id: `doc-${d.id}`, title: d.title, snippet: d.body.slice(0, 160), path: `/docs/#${d.id}`, category: 'Documentation', icon: BookOpen });
       }
     });
 
-    // Search Guides
+    // Guides
     GUIDES_DATA.forEach((g) => {
-      if (
-        g.title.toLowerCase().includes(q) ||
-        g.architectureOverview.toLowerCase().includes(q)
-      ) {
-        items.push({
-          id: g.id,
-          title: g.title,
-          snippet: g.architectureOverview,
-          path: `/guides/#${g.slug}`,
-          category: 'Guide / Tutorial',
-          icon: Code2,
-          claimStatus: g.claimStatus
-        });
+      if (has(g.title, g.overview)) {
+        items.push({ id: `guide-${g.id}`, title: g.title, snippet: g.overview, path: `/guides/#${g.slug}`, category: 'Guide', icon: Code2 });
       }
     });
 
-    // Search Deploy Recipes
-    DEPLOY_RECIPES.forEach((r) => {
-      if (
-        r.name.toLowerCase().includes(q) ||
-        r.runtime.toLowerCase().includes(q)
-      ) {
-        items.push({
-          id: r.id,
-          title: `Deploy ${r.name}`,
-          snippet: `Runtime: ${r.runtime}. Auto-detect files: ${r.autoDetectFiles.join(', ')}`,
-          path: `/deploy/#${r.slug}`,
-          category: 'Deploy Recipe',
-          icon: Layers,
-          claimStatus: r.claimStatus
-        });
+    // CLI commands
+    CLI_COMMANDS.forEach((c) => {
+      if (has(c.command, c.summary)) {
+        items.push({ id: `cli-${c.command}`, title: c.command, snippet: c.summary, path: '/docs/#cli', category: 'CLI', icon: Layers });
       }
     });
 
@@ -175,12 +117,12 @@ export const SearchModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {query.trim() === '' ? (
             <div className="p-8 text-center text-slate-400 text-sm">
               <p className="font-mono text-emerald-400/80 text-xs mb-2">QUICK SEARCH INDEX</p>
-              <p>Type keywords like <span className="text-emerald-300 font-mono">"FastAPI"</span>, <span className="text-emerald-300 font-mono">"Coolify"</span>, <span className="text-emerald-300 font-mono">"Git push"</span>, or <span className="text-emerald-300 font-mono">"Traefik"</span></p>
+              <p>Try <span className="text-emerald-300 font-mono">"admission"</span>, <span className="text-emerald-300 font-mono">"raft"</span>, <span className="text-emerald-300 font-mono">"federation"</span> or <span className="text-emerald-300 font-mono">"audit"</span></p>
             </div>
           ) : results.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-sm">
               <p>No results found for "<span className="text-slate-200">{query}</span>"</p>
-              <p className="text-xs text-slate-500 mt-1">Try searching for generic categories like Docker, CLI, scheduler, or security.</p>
+              <p className="text-xs text-slate-500 mt-1">Try a CLI command, a milestone (M1–M8) or a concept such as policy or WireGuard.</p>
             </div>
           ) : (
             results.map((item) => {

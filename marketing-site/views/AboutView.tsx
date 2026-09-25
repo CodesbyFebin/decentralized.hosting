@@ -1,76 +1,71 @@
 'use client';
 
 import React from 'react';
-import { useNavigate } from '../components/useNavigate';
-import { CONTENT_REGISTRY } from '../data/registry';
-import { AeoAnswerBlock } from '../components/AeoAnswerBlock';
 import { JsonLd } from '../components/JsonLd';
 import { LastUpdated } from '../components/LastUpdated';
-import { Terminal, Heart, Github, Shield, Code, ArrowRight } from 'lucide-react';
+import { CONTENT_REGISTRY } from '../data/registry';
+
+const PRINCIPLES = [
+  ['Self-hosted by default', 'A single-binary control plane and host agent. No SaaS dependency.'],
+  ['No telemetry, no phone-home', 'No outbound calls except the ones the operator configures.'],
+  ['Hosts remain sovereign', 'Local policy decides admission; the control plane can read it but never change it.'],
+  ['Desired ≠ admitted ≠ observed', 'Separate everywhere, end to end.'],
+  ['Every consequential transition is observable', 'Hash-chained ledgers on the control plane and on every host.'],
+  ['Offline operation is expected', 'Hold semantics, an outbox, buffered observations.'],
+  ['Failure is part of the product', '17 chaos scenarios with invariants, run under traffic.'],
+  ['UNKNOWN remains UNKNOWN', 'Nothing unmeasured is estimated or implied.'],
+];
 
 export const AboutView: React.FC = () => {
-  const onNavigate = useNavigate();
-  const frontmatter = CONTENT_REGISTRY['/about/'];
-
+  const fm = CONTENT_REGISTRY['/about/'];
   return (
-    <div className="max-w-4xl mx-auto space-y-12 text-slate-300 font-sans">
-      <JsonLd frontmatter={frontmatter} />
-      <LastUpdated updatedAt={frontmatter.updatedAt} />
+    <div className="space-y-12 max-w-4xl mx-auto">
+      <JsonLd frontmatter={fm} />
+      <LastUpdated updatedAt={fm.updatedAt} />
+      <header className="space-y-4 text-center">
+        <h1 className="text-3xl sm:text-5xl font-bold font-display text-white uppercase">{fm.h1}</h1>
+        <p className="text-sm sm:text-base text-white/60 leading-relaxed font-sans">
+          Decentralized.Host lets independent operators run applications on hardware they control, coordinated
+          by a control plane that can propose but never command.
+        </p>
+      </header>
 
-      {/* Header */}
-      <div className="space-y-4 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <Terminal className="w-3.5 h-3.5" />
-          <span>PROJECT PHILOSOPHY &amp; MISSION</span>
+      <section className="space-y-4">
+        <h2 className="text-xl font-bold text-white font-display">Principles, each with an enforcement point</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {PRINCIPLES.map(([t, d]) => (
+            <div key={t} className="p-4 rounded-lg bg-[#0a0a0a] border border-white/10">
+              <div className="text-sm font-bold text-white font-display">{t}</div>
+              <div className="text-xs text-white/55 font-sans mt-1">{d}</div>
+            </div>
+          ))}
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold font-display text-white">
-          About Decentralized.Host
-        </h1>
-        <p className="text-slate-300 text-sm max-w-2xl mx-auto leading-relaxed">
-          Why we are building an open-source, decentralized compute platform that eliminates proprietary cloud margins and restores infrastructure ownership.
+      </section>
+
+      <section className="p-6 rounded-lg bg-[#0a0a0a] border border-[#00FF41]/30 space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">The standard</h2>
+        <p className="text-sm text-white/70 font-sans leading-relaxed">
+          Do not call a single control plane HA. Do not call a simulated failure chaos. Do not call a browser
+          visualization mesh state. Do not call planned capabilities implemented. Do not publish numbers that were
+          not measured.
         </p>
-      </div>
-
-      {/* AEO Block */}
-      <AeoAnswerBlock
-        question="What is the mission of Decentralized.Host?"
-        answer="Decentralized.Host is an open-source project dedicated to dismantling proprietary cloud lock-in. By providing a clean Git-and-CLI deployment workflow over independent compute nodes, we enable developers to run their workloads on any server hardware with zero cloud rent markups."
-        sourceContext="Decentralized.Host Project Manifesto"
-      />
-
-      {/* Manifesto Content */}
-      <div className="p-8 rounded-2xl bg-[#080b0f] border border-slate-800 space-y-6 text-sm leading-relaxed">
-        <h2 className="text-2xl font-bold font-display text-white">
-          The Infrastructure Sovereignty Manifesto
-        </h2>
-
-        <p>
-          The modern internet was born as a decentralized network of autonomous systems and independent servers. Over the past fifteen years, convenience has driven unprecedented centralization onto three hyperscalers. Developers traded infrastructure control for push-button ergonomics.
+        <p className="text-sm text-white/60 font-sans leading-relaxed">
+          This site follows the same rule. That is why it shows a recorded session instead of a simulator, labels
+          every capability with its evidence, keeps failed validation attempts on the record, and says plainly that
+          production readiness has not been demonstrated yet.
         </p>
+      </section>
 
-        <p>
-          This bargain came with steep costs: unpredictable bills, opaque egress fees, arbitrary account terminations, and severe platform lock-in.
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold text-white font-display">History</h2>
+        <p className="text-sm text-white/65 font-sans leading-relaxed">
+          The name first belonged to a Python prototype: a FastAPI control plane scheduling Docker containers onto
+          node agents behind Traefik. The Go implementation is a redesign around host sovereignty, signed evidence and
+          a published protocol, built milestone by milestone (M1 sovereign runtime through M8 protocol conformance).
+          It is now in production validation, which runs the same gate on real Linux machines before anything is
+          called production-ready.
         </p>
-
-        <p>
-          <strong>Decentralized.Host exists to break that compromise.</strong> We believe you shouldn’t have to choose between modern developer ergonomics (like <code>git push</code> and automated SSL) and owning your infrastructure.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 font-mono text-xs">
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
-            <div className="text-emerald-400 font-bold">100% OPEN SOURCE</div>
-            <div className="text-slate-400 font-sans text-xs">MIT licensed without open-core traps.</div>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
-            <div className="text-emerald-400 font-bold">ZERO PROPRIETARY SDKs</div>
-            <div className="text-slate-400 font-sans text-xs">Standard Docker OCI containers anywhere.</div>
-          </div>
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
-            <div className="text-emerald-400 font-bold">COMMUNITY GOVERNED</div>
-            <div className="text-slate-400 font-sans text-xs">Open architecture and public roadmap.</div>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };
