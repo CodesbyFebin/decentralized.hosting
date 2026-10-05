@@ -1,4 +1,6 @@
 fastapi==0.141.1
+uvicorn[standard]==0.54.0
+sqlalchemy==2.0.54
 uvicorn[standard]==0.53.0
 sqlalchemy==2.1.2
 pyjwt==2.15.0
